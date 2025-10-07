@@ -1,0 +1,18 @@
+{
+  "compilerOptions": {
+    "target": "ES2020",              // Supports modern JS features
+    "module": "node16",            // For Node.js compatibility
+    "moduleResolution": "node16",
+    "outDir": "./dist",              // Compiled output
+    "rootDir": "./src",              // Your source code folder
+    "declaration": true,             // Generate .d.ts files for types
+    "declarationMap": true,          // Maps .d.ts back to .ts
+    "sourceMap": true,               // For debugging
+    "strict": true,                  // Enforce type safety
+    "esModuleInterop": true,         // Allows default imports
+    "skipLibCheck": true,            // Speeds up builds
+    "resolveJsonModule": true        // If you import JSON
+  },
+  "include": ["src"],                // Only include your source
+  "exclude": ["node_modules", "dist"]
+}

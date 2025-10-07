@@ -1,0 +1,56 @@
+{
+  "name": "@dan_koyuki/xrohrjs",
+  "version": "0.0.1",
+  "description": "An express.js framework built with TypeScript",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "type": "module",
+  "files": [
+    "dist"
+  ],
+  "exports": {
+    ".": {
+      "import": "./dist/index.js",
+      "types": "./dist/index.d.ts"
+    }
+  },
+  "engines": {
+    "node": ">=16.11.0"
+  },
+  "scripts": {
+    "build": "tsc",
+    "start": "node dist/index.js",
+    "dev": "ts-node --esm src/index.ts",
+    "prepare": "npm run build"
+  },
+  "keywords": [
+    "express",
+    "express.js",
+    "framework",
+    "typescript"
+  ],
+  "author": "Dan",
+  "license": "MIT",
+  "peerDependencies": {
+    "cors": "^2.8.5",
+    "express": "^5.1.0",
+    "glob": "^11.0.3"
+  },
+  "devDependencies": {
+    "@types/cors": "^2.8.19",
+    "@types/express": "^5.0.3",
+    "@types/node": "^24.3.1",
+    "cors": "^2.8.5",
+    "express": "^5.1.0",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.9.2"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Danang-Bahtiar/DiscrafterJS.git"
+  },
+  "bugs": {
+    "url": "https://github.com/Danang-Bahtiar/DiscrafterJS/issues"
+  },
+  "homepage": "https://github.com/Danang-Bahtiar/DiscrafterJS?tab=readme-ov-file#discrafterjs"
+}
