@@ -35,6 +35,10 @@ class XrohrJS {
     return config;
   }
 
+  static xrohrConfig = (config: XrohrConfig) : XrohrConfig => {
+    return config;
+  }
+
   // ==================================== PRIVATE =============================== //
 
   private setup = async () => {
