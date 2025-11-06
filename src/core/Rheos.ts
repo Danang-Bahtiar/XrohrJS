@@ -1,6 +1,7 @@
 import { glob } from "glob";
 import path from "path";
 import { AxiosCall } from "../types/Rheos.types.js";
+import axios from "axios";
 
 class Rheos {
   private defaultTimeout: number;
