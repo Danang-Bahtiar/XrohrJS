@@ -1,7 +1,7 @@
 import path from "path";
 import fs from "fs";
 import { pathToFileURL } from "url";
-import { XrohrConfig } from "../types/Xrohr.config.js";
+import { XrohrConfig } from "../config/Xrohr.config.js";
 
 export async function loadConfig(): Promise<XrohrConfig> {
   const fullPath = path.resolve(process.cwd(), "xrohr.config.js");

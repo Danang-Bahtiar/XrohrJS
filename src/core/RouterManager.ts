@@ -1,4 +1,3 @@
-import { Application, Router } from "express";
 import { RouterTemplate } from "../types/Router.types.js";
 import path from "path";
 import { glob } from "glob";
@@ -23,28 +22,32 @@ class RouterManager {
     const routePath = path.resolve(process.cwd(), "./src/routes");
     const routeDir = path.join(routePath, "/**/*.{ts,js}").replace(/\\/g, "/");
     const files = await glob(routeDir);
+    
 
     for (const file of files) {
+      const fileName = path.basename(file); // e.g. "users.js"
       const filePath = `file://${file.replace(/\\/g, "/")}`;
       const routeModule = await import(`${filePath}?update=${Date.now()}`);
       const routeConfig: RouterTemplate = routeModule.default;
 
       if (!routeConfig.basePath || !routeConfig.routes) {
-        console.warn(`[WARN] Skipping invalid Route file: ${file}`);
+        console.warn(`[WARN] Skipping invalid Route file: ${fileName}`);
         continue;
       }
 
-      console.log(`[ROUTE] Loading routes from: ${file}`);
+      console.log(`[ROUTE] Loading routes from: ${fileName}`);
 
       // Register all routes defined in this config file
-      this.registerRoute(routeConfig, expressApp);
+      if (routeConfig.type === "TemplateRecipe") {
+        this.templateLoader(routeConfig, expressApp);
+      } else if (routeConfig.type === "ConstructRecipe") {
+        // ????
+        console.warn(`[WARN] ConstructRecipe is mean for telling another server to generate routes. Skipping route file: ${fileName}`);
+      }
     }
   };
 
-  public registerRoute = (
-    routeConfig: RouterTemplate,
-    expressApp: Server
-  ) => {
+  public templateLoader = (routeConfig: RouterTemplate, expressApp: Server) => {
     const { basePath, routes } = routeConfig;
 
     for (const route of routes) {

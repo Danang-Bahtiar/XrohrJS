@@ -1,11 +1,12 @@
 export interface XrohrConfig {
   server: ServerConfig;
   router: RouteConfig;
+  sparkLite: SparkLiteConfig;
+  axios: AxiosConfig;
 }
 
 export interface ServerConfig {
   port: number;
-  apiPrefix: string;
   useDefaultCors: boolean;
   allowedOrigins?: string[];
   allowedMethods?: string[];
@@ -14,5 +15,17 @@ export interface ServerConfig {
 }
 
 export interface RouteConfig {
+  apiPrefix: string;
   useDefaultRouterRegistration: boolean;
+}
+
+export interface SparkLiteConfig {
+  enabled: boolean;
+}
+
+export interface AxiosConfig {
+  enabled: boolean;
+  defaultTimeout?: number;
+  baseURL: string;
+  subURL?: string;
 }

@@ -2,11 +2,11 @@ import { Request, Response } from "express";
 
 export interface RouterTemplate {
   basePath: string;
-  routes: DynamicRoute[]|StrictRoute[];
+  type: "TemplateRecipe"|"ConstructRecipe" ;
+  routes: TemplateRecipe[]|ConstructRecipe[];
 }
 
-export interface DynamicRoute {
-  type: "dynamic";
+export interface TemplateRecipe {
   name: string;
   path: string;
   method: "get" | "post" | "delete" | "put";
@@ -14,8 +14,7 @@ export interface DynamicRoute {
   handlers: (req: Request, res: Response) => Promise<void>;
 }
 
-export interface StrictRoute {
-  type: "strict";
+export interface ConstructRecipe {
   name: string;
   path: string;
   method: "get" | "post" | "delete" | "put";
