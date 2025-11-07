@@ -1,4 +1,7 @@
 export interface SparkLiteEvent {
-    eventName: string;
-    listener: (...args: any[]) => Promise<void>;
+  eventName: string;
+  listener: (
+    data: any,
+    callback?: (result: any) => void
+  ) => Promise<void> | void;
 }

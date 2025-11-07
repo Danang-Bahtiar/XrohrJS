@@ -40,15 +40,22 @@ class SparkLite {
     }
   };
 
+  // Subscribe
   public Subscribe = (
     eventName: string,
-    listener: (...args: any[]) => Promise<void>
+    listener: (
+      data: any,
+      callback?: (result: any) => void
+    ) => Promise<void> | void
   ) => {
     this.app.on(eventName, listener);
   };
 
-  public Publish = (eventName: string, ...args: any[]) => {
-    this.app.emit(eventName, ...args);
+  // Publish
+  public Publish = (eventName: string, data: any) => {
+    return new Promise((resolve) => {
+      this.app.emit(eventName, data, resolve); // pass resolve as callback
+    });
   };
 }
 

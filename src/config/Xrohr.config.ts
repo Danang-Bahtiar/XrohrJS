@@ -3,6 +3,7 @@ export interface XrohrConfig {
   router: RouteConfig;
   sparkLite: SparkLiteConfig;
   axios: AxiosConfig;
+  memoria: MemoriaConfig;
 }
 
 export interface ServerConfig {
@@ -28,4 +29,8 @@ export interface AxiosConfig {
   defaultTimeout?: number;
   baseURL: string;
   subURL?: string;
+}
+
+export interface MemoriaConfig {
+  enabled: boolean;
 }

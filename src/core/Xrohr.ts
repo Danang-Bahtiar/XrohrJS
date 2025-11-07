@@ -10,6 +10,8 @@ import SparkLite from "./SparkLite.js";
 import { SparkLiteEvent } from "../types/Event.type.js";
 import Rheos from "./Rheos.js";
 import { AxiosCall } from "../types/Rheos.types.js";
+import Memoria from "./Memoria.js";
+import MiddlewareManager from "./MiddlewareManager.js";
 
 class XrohrJS {
   private expressApp: Server;
@@ -19,9 +21,13 @@ class XrohrJS {
   private sparkLiteEnabled: boolean = false;
   private RheosApp!: Rheos;
   private rheosEnabled: boolean = false;
+  private memoriaApp!: Map<string, Memoria>;
+  private memoriaEnabled: boolean = false;
+  private middlewareManager: MiddlewareManager;
 
   constructor() {
     this.routerManager = new RouterManager();
+    this.middlewareManager = new MiddlewareManager();
     this.expressApp = new Server();
   }
 
@@ -90,6 +96,8 @@ class XrohrJS {
   // ==================================== PRIVATE =============================== //
 
   private setup = async () => {
+    await this.middlewareManager.init();
+
     // load main config
     const config = await loadConfig();
 
@@ -111,7 +119,12 @@ class XrohrJS {
     }
 
     if (config.router.useDefaultRouterRegistration) {
-      this.routerManager.init(this.expressApp, config.router.apiPrefix);
+      this.routerManager.init(this.expressApp, config.router.apiPrefix, this.middlewareManager);
+    }
+
+    if (config.memoria.enabled) {
+      this.memoriaApp = new Map();
+      this.memoriaEnabled = true;
     }
 
     if (config.sparkLite.enabled) {
@@ -158,6 +171,21 @@ class XrohrJS {
     }
   };
 
+  public getMemoriaApp = () => {
+    if (this.memoriaEnabled) {
+      return this.memoriaApp;
+    } else {
+      throw new Error("Memoria module is not enabled in the configuration.");
+    }
+  }
+
+  public createMemoria = (name: string, key: string, schema: object) => {
+    if (!this.memoriaApp.get(name)) {
+      const memoria = new Memoria(key, schema)
+      this.memoriaApp.set(name, memoria);
+    }
+  }
+
   public getAxiosApp = () => {
     if (this.rheosEnabled) {
       return this.RheosApp;
@@ -173,6 +201,10 @@ class XrohrJS {
       throw new Error("Rheos module is not enabled in the configuration.");
     }
   };
+
+  public getMiddlewareManager = () => {
+    return this.middlewareManager;
+  }
 
   // public registerCustomRouter = (router: RouterTemplate) => {
   //   this.routerManager.customRegister(router, this.expressApp);

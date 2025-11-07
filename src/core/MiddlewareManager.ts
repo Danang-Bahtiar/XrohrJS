@@ -4,9 +4,11 @@ import { MiddlewareTemplate } from "../types/Middleware.types.js";
 
 class MiddlewareManager {
   private middlewareCollection: Map<string, any>;
+  private independentMiddleware: Map<string, any>;
 
   constructor() {
     this.middlewareCollection = new Map<string, any>();
+    this.independentMiddleware = new Map<string, any>();
   }
 
   public init = async () => {
@@ -22,10 +24,9 @@ class MiddlewareManager {
       const middlewareModule = await import(`${filePath}?update=${Date.now()}`);
 
       const middlewareConfig: MiddlewareTemplate = middlewareModule.default;
-
       if (
         !middlewareConfig.name ||
-        typeof middlewareConfig.handlers !== "function"
+        typeof middlewareConfig.handler !== "function"
       ) {
         console.warn(`[WARN] Skipping invalid Middleware file: ${file}`);
         continue;
@@ -33,11 +34,15 @@ class MiddlewareManager {
 
       console.log(`[Middleware] Loading middleware: ${middlewareConfig.name}`);
 
-      this.middlewareCollection.set(middlewareConfig.name, middlewareConfig);
+      if (middlewareConfig.type === "express") {
+        this.middlewareCollection.set(middlewareConfig.name, middlewareConfig);
+      } else {
+        this.independentMiddleware.set(middlewareConfig.name, middlewareConfig);
+      }
     }
   };
 
-  public getMiddlewares = (middlewaresName: string[]) => {
+  public getExpressMiddlewares = (middlewaresName: string[]) => {
     const middlewares = [];
 
     for (const mw of middlewaresName) {
@@ -49,6 +54,12 @@ class MiddlewareManager {
     }
 
     return middlewares;
+  };
+
+  public getIndependentMiddleware = (middlewareName: string) => {
+    if (this.independentMiddleware.get(middlewareName)) {
+      return this.independentMiddleware.get(middlewareName);
+    }
   };
 }
 

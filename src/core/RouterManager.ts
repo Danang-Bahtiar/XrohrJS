@@ -6,18 +6,14 @@ import Server from "./Server.js";
 
 class RouterManager {
   private routeCollection: Map<string, any>;
-  private middlewareManager: MiddlewareManager;
   private prefix!: string;
 
   constructor() {
-    this.middlewareManager = new MiddlewareManager();
     this.routeCollection = new Map<string, any>();
   }
 
-  public init = async (expressApp: Server, prefix: string) => {
+  public init = async (expressApp: Server, prefix: string, middlewareManager: MiddlewareManager) => {
     this.prefix = prefix;
-    // Load all available middleware functions into the manager
-    await this.middlewareManager.init();
 
     const routePath = path.resolve(process.cwd(), "./src/routes");
     const routeDir = path.join(routePath, "/**/*.{ts,js}").replace(/\\/g, "/");
@@ -39,7 +35,7 @@ class RouterManager {
 
       // Register all routes defined in this config file
       if (routeConfig.type === "TemplateRecipe") {
-        this.templateLoader(routeConfig, expressApp);
+        this.templateLoader(routeConfig, expressApp, middlewareManager);
       } else if (routeConfig.type === "ConstructRecipe") {
         // ????
         console.warn(`[WARN] ConstructRecipe is mean for telling another server to generate routes. Skipping route file: ${fileName}`);
@@ -47,12 +43,12 @@ class RouterManager {
     }
   };
 
-  public templateLoader = (routeConfig: RouterTemplate, expressApp: Server) => {
+  public templateLoader = (routeConfig: RouterTemplate, expressApp: Server, middlewareManager: MiddlewareManager) => {
     const { basePath, routes } = routeConfig;
 
     for (const route of routes) {
       // 1. Get the actual middleware functions from the manager
-      const middlewareChain = this.middlewareManager.getMiddlewares(
+      const middlewareChain = middlewareManager.getExpressMiddlewares(
         route.middlewares
       );
 
