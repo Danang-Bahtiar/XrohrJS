@@ -1,4 +1,4 @@
-import { RouterTemplate } from "../types/Router.types.js";
+import { RouterTemplate, TemplateRecipe } from "../types/Router.types.js";
 import path from "path";
 import { glob } from "glob";
 import MiddlewareManager from "./MiddlewareManager.js";
@@ -44,7 +44,8 @@ class RouterManager {
   };
 
   public templateLoader = (routeConfig: RouterTemplate, expressApp: Server, middlewareManager: MiddlewareManager) => {
-    const { basePath, routes } = routeConfig;
+    const { basePath  } = routeConfig;
+    const routes = routeConfig.routes as TemplateRecipe[]
 
     for (const route of routes) {
       // 1. Get the actual middleware functions from the manager

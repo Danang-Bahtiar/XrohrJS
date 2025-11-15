@@ -19,9 +19,20 @@ export interface ConstructRecipe {
   path: string;
   method: "get" | "post" | "delete" | "put";
   middlewares: string[];
-  handlers: {
-    action: "fetch" | "deliver" | "write";
-    params?: string;
-    schema?: object;
-  }
+  construct: ConstructSingle | ConstructMultiple;
 }
+
+export interface ConstructSingle {
+  resource: string;
+  action: "get" | "remove" | "update" | "create" | "getAll";
+  mode: "single";
+  params: string;
+}
+
+export interface ConstructMultiple {
+  resource: string;
+  action: "get" | "remove" | "update" | "create" | "getAll";
+  mode: "multiple";
+  params: string[];
+}
+

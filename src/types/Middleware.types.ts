@@ -24,7 +24,6 @@ export type IndependentHandler =
  */
 interface BaseMiddleware {
   name: string;
-  readbyLoader: boolean;
 }
 
 /**
