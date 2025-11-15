@@ -50,10 +50,10 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/Danang-Bahtiar/DiscrafterJS.git"
+    "url": "git+https://github.com/Danang-Bahtiar/XRohrJS.git"
   },
   "bugs": {
-    "url": "https://github.com/Danang-Bahtiar/DiscrafterJS/issues"
+    "url": "https://github.com/Danang-Bahtiar/XrohrJS/issues"
   },
-  "homepage": "https://github.com/Danang-Bahtiar/DiscrafterJS?tab=readme-ov-file#discrafterjs"
+  "homepage": "https://github.com/Danang-Bahtiar/XrohrJS?tab=readme-ov-file#xrohrjs"
 }
