@@ -5,17 +5,18 @@ import { NextFunction, Request, Response } from "express";
 /**
  * Standard Express.js middleware handler signature.
  */
-export type ExpressHandler = 
-  (req: Request, res: Response, next: NextFunction) => Promise<void> | void;
+export type ExpressHandler = (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => Promise<void> | void;
 
 /**
  * A generic, independent handler for data processing or formatting.
  * It takes some input and returns some output (or a promise of it).
  * You can make this more specific (e.g., (input: string) => number) if you want.
  */
-export type IndependentHandler = 
-  (payload: any) => Promise<any> | any;
-
+export type IndependentHandler = (payload: any) => Promise<any> | any;
 
 // --- 2. Define the Template Structures ---
 
@@ -42,11 +43,12 @@ export interface IndependentMiddlewareTemplate extends BaseMiddleware {
   handler: IndependentHandler;
 }
 
-
 // --- 3. Create the Final Union Type ---
 
 /**
  * A middleware template that can be *either* for Express *or* independent.
  * TypeScript will enforce that the 'handler' type matches the 'type' string.
  */
-export type MiddlewareTemplate = ExpressMiddlewareTemplate | IndependentMiddlewareTemplate;
+export type MiddlewareTemplate =
+  | ExpressMiddlewareTemplate
+  | IndependentMiddlewareTemplate;

@@ -49,7 +49,7 @@ class MiddlewareManager {
       const module = this.middlewareCollection.get(mw);
 
       if (module) {
-        middlewares.push(module.handlers);
+        middlewares.push(module.handler);
       }
     }
 
