@@ -262,12 +262,10 @@ class RouterManager {
   };
 
   public getConstructCollection = () => {
-    console.log("FIRST FORM", this.constructCollection);
     const array = [...this.constructCollection].map(([fileName, config]) => ({
       fileName,
       config,
     }));
-    console.log("SECOND FORM", array);
 
     return array;
   };
