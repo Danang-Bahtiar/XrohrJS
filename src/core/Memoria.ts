@@ -9,28 +9,18 @@
  */
 class Memoria {
   private key: string;
-  private schema: object;
+  // private schema: object;
   private Memories: Map<string, any>;
 
-  constructor(key: string, schema: object) {
+  constructor(key: string) {
     this.key = key;
-    this.schema = schema;
+    // this.schema = schema;
     this.Memories = new Map();
   }
 
   // =====================
   // Public API
   // =====================
-
-  /**
-   * Creates a record. BROKEN.. Please use setRecord for the meantime.
-   * @param keyField - The field used as the primary key (must match constructor key).
-   * @param data - Data object to insert.
-   */
-  public createRecord(keyField: string, data: any) {
-    if (keyField !== this.key) throw new Error("Invalid key for static record.");
-    this.Memories.set(data[this.key], data);
-  }
 
   /** Retrieves a record by its key value. */
   public getRecord(id: string) {
@@ -43,8 +33,10 @@ class Memoria {
   }
 
   /** Updates an existing record or creates a new one. */
-  public setRecord(id: string, data: any) {
-    this.Memories.set(id, data);
+  public setRecord(data: any) {
+    if (!data.hasOwnProperty(this.key)) throw new Error("Data must contain the key field.");
+    if (!data[this.key]) throw new Error("Key field cannot be empty.");
+    this.Memories.set(data[this.key], data);
   }
 
   /** Returns all stored records. */

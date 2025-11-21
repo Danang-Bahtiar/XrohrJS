@@ -9,6 +9,7 @@ import Rheos from "./Rheos.js";
 import Memoria from "./Memoria.js";
 import MiddlewareManager from "./MiddlewareManager.js";
 import { ReturnTemplate } from "../types/Return.type.js";
+import { RouterTemplate } from "../types/Router.types.js";
 
 class Xrohr {
   private expressApp: Server;
@@ -29,7 +30,7 @@ class Xrohr {
   }
 
   // ==================================== PRIVATE =============================== //
-   private initialize = async () => {
+  private initialize = async () => {
     await this.middlewareManager.init();
 
     // load main config
@@ -103,7 +104,7 @@ class Xrohr {
 
   public getExpressApp = () => {
     return this.expressApp;
-  }
+  };
 
   public getSparkLiteApp = () => {
     if (!this.sparkLiteEnabled)
@@ -117,18 +118,14 @@ class Xrohr {
     return this.memoriaApp;
   };
 
-  public createMemoria = (
-    name: string,
-    key: string,
-    schema: object
-  ): ReturnTemplate => {
+  public createMemoria = (name: string, key: string): ReturnTemplate => {
     try {
       if (!this.memoriaEnabled)
         throw new Error("Memoria module is not enabled in the configuration.");
 
       let memoria = this.memoriaApp.get(name);
       if (!memoria) {
-        memoria = new Memoria(key, schema);
+        memoria = new Memoria(key);
         this.memoriaApp.set(name, memoria);
       }
 
@@ -165,6 +162,19 @@ class Xrohr {
   public getMiddlewareManager = () => {
     return this.middlewareManager;
   };
+
+  public registerConstructRoutes = async (routeConfig: RouterTemplate) => {
+    return this.routerManager.constructLoader(
+      routeConfig,
+      this.memoriaApp,
+      this.middlewareManager,
+      this.expressApp
+    );
+  };
+
+  public getRouterManager = () => {
+    return this.routerManager;
+  }
 }
 
 export default Xrohr;

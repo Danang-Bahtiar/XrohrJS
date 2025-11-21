@@ -26,13 +26,13 @@ export interface ConstructSingle {
   resource: string;
   action: "get" | "remove" | "update" | "create" | "getAll";
   mode: "single";
-  params: string;
+  dataInParams: boolean;
 }
 
 export interface ConstructMultiple {
   resource: string;
   action: "get" | "remove" | "update" | "create" | "getAll";
   mode: "multiple";
-  params: string[];
+  dataInParams: false;
 }
 
