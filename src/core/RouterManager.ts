@@ -233,9 +233,27 @@ class RouterManager {
       );
       const fullPath = `${this.prefix}${basePath}${route.path}`;
 
-      // FIX: Use spread operator (...) to pass the array of middlewares
-      // @ts-ignore
-      expressApp[route.method](fullPath, ...middlewareChain, handler);
+      const handlerChain = [...middlewareChain, handler];
+      switch (route.method) {
+        case "get":
+          expressApp.get(fullPath, handlerChain);
+          break;
+        case "post":
+          expressApp.post(fullPath, handlerChain);
+          break;
+        case "put":
+          expressApp.put(fullPath, handlerChain);
+          break;
+        case "delete":
+          expressApp.delete(fullPath, handlerChain);
+          break;
+        default:
+          // This handles any unsupported method names from your config files
+          console.warn(
+            `[WARN] HTTP method '${route.method}' is not supported. Skipping route ${fullPath}.`
+          );
+          continue;
+      }
 
       console.log(
         `  ✔️  Constructed: ${route.method.toUpperCase()} ${fullPath}`
