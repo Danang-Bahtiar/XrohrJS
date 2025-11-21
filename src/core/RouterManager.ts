@@ -52,6 +52,7 @@ class RouterManager {
         console.warn(
           `[WARN] ConstructRecipe is mean for telling another server to generate routes. Skipping route file: ${fileName}`
         );
+        continue;
       }
     }
   };

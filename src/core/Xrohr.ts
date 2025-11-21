@@ -30,57 +30,90 @@ class Xrohr {
   }
 
   // ==================================== PRIVATE =============================== //
+  private logSection = (name: string) => {
+    console.log(`\n========================================`);
+    console.log(`   🚀 STARTING MODULE: ${name}`);
+    console.log(`========================================`);
+  };
+
   private initialize = async () => {
-    await this.middlewareManager.init();
-
-    // load main config
+    // 1. Load Config
+    this.logSection("CONFIGURATION");
     const config = await loadConfig();
-
     this.port = config.server.port;
+    console.log(`[CONFIG] Loaded configuration. Port set to: ${this.port}`);
 
+    // 2. Initialize Middleware Manager
+    this.logSection("MIDDLEWARE MANAGER");
+    await this.middlewareManager.init();
+    console.log("[MIDDLEWARE] Middleware Manager initialized.");
+
+    // 3. Express Core Setup
+    this.logSection("EXPRESS CORE");
     if (config.server.useDefaultCors) {
       this.expressApp.getApp().use(cors());
+      console.log("[SERVER] Using default CORS configuration.");
     } else {
       const corsConfig = this.createCorsConfig(config.server);
       this.expressApp.getApp().use(cors(corsConfig));
+      console.log("[SERVER] Using custom CORS configuration.");
     }
 
     if (config.server.useJsonParser) {
       this.expressApp.getApp().use(express.json());
+      console.log("[SERVER] JSON Parser enabled.");
     }
 
     if (config.server.useUrlEncoded) {
       this.expressApp.getApp().use(express.urlencoded({ extended: true }));
+      console.log("[SERVER] URL Encoded Parser enabled.");
     }
 
-    if (config.router.useDefaultRouterRegistration) {
-      this.routerManager.init(
-        this.expressApp,
-        config.router.apiPrefix,
-        this.middlewareManager
-      );
-    }
-
+    // 4. Memoria (Synchronous init, but good to log)
     if (config.memoria.enabled) {
+      this.logSection("MEMORIA (CACHE)");
       this.memoriaApp = new Map();
       this.memoriaEnabled = true;
+      console.log("[MEMORIA] In-memory storage initialized.");
     }
 
+    // 5. SparkLite (Events) - Await ensure events are ready before routes
     if (config.sparkLite.enabled) {
+      this.logSection("SPARKLITE (EVENTS)");
       this.sparkLiteEnabled = true;
       this.sparkLiteApp = new SparkLite();
-      await this.sparkLiteApp.load();
+      await this.sparkLiteApp.load(); // Explicit await
+      console.log("[SPARKLITE] Event system ready.");
     }
 
+    // 6. Rheos (Axios) - Await ensures API clients are ready
     if (config.axios.enabled) {
+      this.logSection("RHEOS (HTTP CLIENT)");
       this.rheosEnabled = true;
       this.rheosApp = new Rheos(
         config.axios.defaultTimeout,
         config.axios.baseURL,
         config.axios.subURL || ""
       );
-      await this.rheosApp.load();
+      await this.rheosApp.load(); // Explicit await
+      console.log("[RHEOS] HTTP Client wrappers loaded.");
     }
+
+    // 7. Router (Last) - Routes might depend on Events/Axios, so load this last
+    if (config.router.useDefaultRouterRegistration) {
+      this.logSection("ROUTER MANAGER");
+      // Ensure routerManager.init is treated as async if it does file loading
+      await this.routerManager.init(
+        this.expressApp,
+        config.router.apiPrefix,
+        this.middlewareManager
+      );
+      console.log("[ROUTER] All routes registered successfully.");
+    }
+
+    console.log(`\n========================================`);
+    console.log(`   ✨ SYSTEM INITIALIZATION COMPLETE`);
+    console.log(`========================================\n`);
   };
 
   private createCorsConfig = (config: ServerConfig): CorsOptions => {
@@ -174,7 +207,7 @@ class Xrohr {
 
   public getRouterManager = () => {
     return this.routerManager;
-  }
+  };
 }
 
 export default Xrohr;
