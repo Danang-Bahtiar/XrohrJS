@@ -1,6 +1,6 @@
 {
   "name": "@dan_koyuki/xrohrjs",
-  "version": "1.0.1",
+  "version": "1.0.7",
   "description": "An express.js framework built with TypeScript",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",

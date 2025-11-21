@@ -24,6 +24,24 @@ class Rheos {
     };
 
     try {
+      let data;
+
+      if (config.data) {
+        if (typeof config.data === "function") {
+          try {
+            data = await config.data(); // If this throws, catch it!
+          } catch (error) {
+            console.error(
+              `[RHEOS] Failed to generate data for call '${config.name}':`,
+              error
+            );
+            throw error; // Re-throw so the caller knows it failed
+          }
+        } else {
+          data = config.data;
+        }
+      }
+
       const method = config.method.toLowerCase();
       let res;
       switch (method) {
@@ -31,10 +49,10 @@ class Rheos {
           res = await axios.get(url, callConfig);
           break;
         case "post":
-          res = await axios.post(url, config.data, callConfig);
+          res = await axios.post(url, data, callConfig);
           break;
         case "put":
-          res = await axios.put(url, config.data, callConfig);
+          res = await axios.put(url, data, callConfig);
           break;
         case "delete":
           res = await axios.delete(url, callConfig);

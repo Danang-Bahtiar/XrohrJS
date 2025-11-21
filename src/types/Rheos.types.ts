@@ -13,7 +13,7 @@ export interface AxiosCall {
     name: string;
     method: "GET" | "POST" | "PUT" | "DELETE";
     endpoint: string;
-    data?: any;
+    data?: any | (() => any | Promise<any>);
     headers?: Record<string, string>;
     timeout?: number;
     priority?: number;
