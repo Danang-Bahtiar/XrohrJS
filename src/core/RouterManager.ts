@@ -244,10 +244,14 @@ class RouterManager {
   };
 
   public getConstructCollection = () => {
-    return [...this.constructCollection].map(([fileName, config]) => ({
+    console.log("FIRST FORM", this.constructCollection);
+    const array = [...this.constructCollection].map(([fileName, config]) => ({
       fileName,
       config,
     }));
+    console.log("SECOND FORM", array);
+
+    return array;
   };
 }
 
