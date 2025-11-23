@@ -1,47 +1,82 @@
-/**
- * A lightweight in-memory data store with schema validation.
- * 
- * @example
- * const userSchema = { id: 0, name: "", age: 0 };
- * const memoria = new Memoria("id", userSchema);
- * memoria.createRecord("id", { id: 1, name: "Dan", age: 21 });
- * console.log(memoria.getRecord(1));
- */
 class Memoria {
   private key: string;
-  // private schema: object;
   private Memories: Map<string, any>;
+  private Locks: Map<string, Promise<void>>;
 
   constructor(key: string) {
     this.key = key;
-    // this.schema = schema;
     this.Memories = new Map();
+    this.Locks = new Map();
   }
 
-  // =====================
-  // Public API
-  // =====================
+  // ----------------------------------------
+  // Internal per-key mutex (transaction core)
+  // ----------------------------------------
+  private async lock(id: string, fn: () => Promise<any>) {
+    const prev = this.Locks.get(id) || Promise.resolve();
 
-  /** Retrieves a record by its key value. */
+    let release!: () => void;
+    const next = new Promise<void>(res => (release = res));
+
+    this.Locks.set(id, prev.then(() => next));
+
+    try {
+      return await fn();
+    } finally {
+      release();
+      if (this.Locks.get(id) === next) {
+        this.Locks.delete(id);
+      }
+    }
+  }
+
+  // ----------------------------------------
+  // PUBLIC CRUD
+  // ----------------------------------------
+
+  /** READ: no lock needed */
   public getRecord(id: string) {
     return this.Memories.get(id);
   }
 
-  /** Removes a record by its key value. */
-  public removeRecord(id: string) {
-    this.Memories.delete(id);
-  }
-
-  /** Updates an existing record or creates a new one. */
-  public setRecord(data: any) {
-    if (!data.hasOwnProperty(this.key)) throw new Error("Data must contain the key field.");
-    if (!data[this.key]) throw new Error("Key field cannot be empty.");
-    this.Memories.set(data[this.key], data);
-  }
-
-  /** Returns all stored records. */
+  /** READ ALL: no lock needed */
   public getAll() {
     return this.Memories;
+  }
+
+  /** CREATE/UPDATE (implicit transaction + versioning) */
+  public async setRecord(data: any) {
+    if (!data[this.key]) throw new Error("Key field is missing.");
+    const id = data[this.key];
+
+    return this.lock(id, async () => {
+      const current = this.Memories.get(id);
+
+      const newRecord = {
+        ...data,
+        __version: current ? current.__version + 1 : 1,
+      };
+
+      this.Memories.set(id, newRecord);
+      return newRecord;
+    });
+  }
+
+  /** DELETE (implicit transaction + optional versioning) */
+  public async removeRecord(id: string, expectedVersion?: number) {
+    return this.lock(id, async () => {
+      const current = this.Memories.get(id);
+      if (!current) return;
+
+      if (
+        expectedVersion !== undefined &&
+        current.__version !== expectedVersion
+      ) {
+        throw new Error("Version mismatch. Delete aborted.");
+      }
+
+      this.Memories.delete(id);
+    });
   }
 }
 
