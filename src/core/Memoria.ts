@@ -1,82 +1,86 @@
+import Memories from "./Memories.js";
+
 class Memoria {
-  private key: string;
-  private Memories: Map<string, any>;
-  private Locks: Map<string, Promise<void>>;
+  private memoriesCollections: Map<string, Memories>;
 
-  constructor(key: string) {
-    this.key = key;
-    this.Memories = new Map();
-    this.Locks = new Map();
+  constructor() {
+    this.memoriesCollections = new Map();
   }
 
   // ----------------------------------------
-  // Internal per-key mutex (transaction core)
+  // CREATE
   // ----------------------------------------
-  private async lock(id: string, fn: () => Promise<any>) {
-    const prev = this.Locks.get(id) || Promise.resolve();
-
-    let release!: () => void;
-    const next = new Promise<void>(res => (release = res));
-
-    this.Locks.set(id, prev.then(() => next));
-
-    try {
-      return await fn();
-    } finally {
-      release();
-      if (this.Locks.get(id) === next) {
-        this.Locks.delete(id);
-      }
+  public createMemoriesCollection(
+    name: string,
+    primaryKey: string
+  ): Memories {
+    if (this.memoriesCollections.has(name)) {
+      throw new Error(`Memories collection with name ${name} already exists.`);
     }
+
+    const newCollection = new Memories(primaryKey);
+    this.memoriesCollections.set(name, newCollection);
+    return newCollection;
   }
 
   // ----------------------------------------
-  // PUBLIC CRUD
+  // GETTERS
   // ----------------------------------------
-
-  /** READ: no lock needed */
-  public getRecord(id: string) {
-    return this.Memories.get(id);
+  public getMemoriesCollection(name: string): Memories | undefined {
+    return this.memoriesCollections.get(name);
   }
 
-  /** READ ALL: no lock needed */
-  public getAll() {
-    return this.Memories;
+  /** Throws if missing */
+  public requireMemoriesCollection(name: string): Memories {
+    const col = this.memoriesCollections.get(name);
+    if (!col) {
+      throw new Error(`Memories collection '${name}' does not exist.`);
+    }
+    return col;
   }
 
-  /** CREATE/UPDATE (implicit transaction + versioning) */
-  public async setRecord(data: any) {
-    if (!data[this.key]) throw new Error("Key field is missing.");
-    const id = data[this.key];
-
-    return this.lock(id, async () => {
-      const current = this.Memories.get(id);
-
-      const newRecord = {
-        ...data,
-        __version: current ? current.__version + 1 : 1,
-      };
-
-      this.Memories.set(id, newRecord);
-      return newRecord;
-    });
+  public hasMemoriesCollection(name: string): boolean {
+    return this.memoriesCollections.has(name);
   }
 
-  /** DELETE (implicit transaction + optional versioning) */
-  public async removeRecord(id: string, expectedVersion?: number) {
-    return this.lock(id, async () => {
-      const current = this.Memories.get(id);
-      if (!current) return;
+  public getAllMemoriesCollections(): Map<string, Memories> {
+    return this.memoriesCollections;
+  }
 
-      if (
-        expectedVersion !== undefined &&
-        current.__version !== expectedVersion
-      ) {
-        throw new Error("Version mismatch. Delete aborted.");
-      }
+  public getCollectionNames(): string[] {
+    return Array.from(this.memoriesCollections.keys());
+  }
 
-      this.Memories.delete(id);
-    });
+  // ----------------------------------------
+  // RENAME / KEY UPDATE
+  // ----------------------------------------
+  public updateMemoriesCollectionName(oldName: string, newName: string): void {
+    const collection = this.requireMemoriesCollection(oldName);
+
+    if (this.memoriesCollections.has(newName)) {
+      throw new Error(
+        `Memories collection with name ${newName} already exists.`
+      );
+    }
+
+    this.memoriesCollections.delete(oldName);
+    this.memoriesCollections.set(newName, collection);
+  }
+
+  public updateMemoriesCollectionKey(name: string, newKey: string): void {
+    const collection = this.requireMemoriesCollection(name);
+    collection.updatePrimaryKey(newKey);
+  }
+
+  // ----------------------------------------
+  // DELETE
+  // ----------------------------------------
+  public deleteMemoriesCollection(name: string): boolean {
+    return this.memoriesCollections.delete(name);
+  }
+
+  public clearAllMemoriesCollections(): void {
+    this.memoriesCollections.clear();
   }
 }
 

@@ -19,7 +19,7 @@ class Xrohr {
   private sparkLiteEnabled: boolean = false;
   private rheosApp!: Rheos;
   private rheosEnabled: boolean = false;
-  private memoriaApp!: Map<string, Memoria>;
+  private memoriaApp!: Memoria;
   private memoriaEnabled: boolean = false;
   private middlewareManager: MiddlewareManager;
 
@@ -72,7 +72,7 @@ class Xrohr {
     // 4. Memoria (Synchronous init, but good to log)
     if (config.memoria.enabled) {
       this.logSection("MEMORIA (CACHE)");
-      this.memoriaApp = new Map();
+      this.memoriaApp = new Memoria();
       this.memoriaEnabled = true;
       console.log("[MEMORIA] In-memory storage initialized.");
     }
@@ -151,15 +151,15 @@ class Xrohr {
     return this.memoriaApp;
   };
 
-  public createMemoria = (name: string, key: string): ReturnTemplate => {
+
+  public createMemories = (name: string, key: string): ReturnTemplate => {
     try {
       if (!this.memoriaEnabled)
         throw new Error("Memoria module is not enabled in the configuration.");
 
-      let memoria = this.memoriaApp.get(name);
+      let memoria = this.memoriaApp.getMemoriesCollection(name);
       if (!memoria) {
-        memoria = new Memoria(key);
-        this.memoriaApp.set(name, memoria);
+        memoria = this.memoriaApp.createMemoriesCollection(name, key);
       }
 
       return {

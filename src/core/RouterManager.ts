@@ -9,6 +9,7 @@ import MiddlewareManager from "./MiddlewareManager.js";
 import Server from "./Server.js";
 import Memoria from "./Memoria.js";
 import { Request, Response } from "express";
+import Memories from "./Memories.js";
 
 class RouterManager {
   private routeCollection: Map<string, any>;
@@ -127,14 +128,14 @@ class RouterManager {
    */
   public constructLoader = (
     routeConfig: RouterTemplate,
-    memoriaApp: Map<string, Memoria>,
+    memoriaApp: Memoria,
     middlewareManager: MiddlewareManager,
     expressApp: Server
   ) => {
     const { basePath } = routeConfig;
     const routes = routeConfig.routes as ConstructRecipe[];
 
-    const actionMap: Record<string, keyof Memoria> = {
+    const actionMap: Record<string, keyof Memories> = {
       get: "getRecord",
       create: "setRecord",
       update: "setRecord",
@@ -146,7 +147,7 @@ class RouterManager {
       const handler = async (req: Request, res: Response) => {
         try {
           // 1. Resource Check
-          const memoria = memoriaApp.get(route.construct.resource);
+          const memoria = memoriaApp.getMemoriesCollection(route.construct.resource);
           if (!memoria)
             throw new Error(`Resource ${route.construct.resource} not found`);
 
