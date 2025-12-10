@@ -91,9 +91,7 @@ class Xrohr {
       this.logSection("RHEOS (HTTP CLIENT)");
       this.rheosEnabled = true;
       this.rheosApp = new Rheos(
-        config.axios.defaultTimeout,
-        config.axios.baseURL,
-        config.axios.subURL || ""
+        config.axios
       );
       await this.rheosApp.load(); // Explicit await
       console.log("[RHEOS] HTTP Client wrappers loaded.");
