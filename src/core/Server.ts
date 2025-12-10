@@ -7,7 +7,7 @@ class Server {
     this.expressApp = express();
   }
 
-  public listen = (port: number) => {
+  public listen = (port: number, p0?: () => void) => {
     this.expressApp.listen(port, () => {
       console.log(`Service running on http://localhost:${port}`);
     });
