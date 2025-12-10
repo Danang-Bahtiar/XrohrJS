@@ -90,9 +90,7 @@ class Xrohr {
     if (config.axios.enabled) {
       this.logSection("RHEOS (HTTP CLIENT)");
       this.rheosEnabled = true;
-      this.rheosApp = new Rheos(
-        config.axios
-      );
+      this.rheosApp = new Rheos(config.axios);
       await this.rheosApp.load(); // Explicit await
       console.log("[RHEOS] HTTP Client wrappers loaded.");
     }
@@ -129,8 +127,12 @@ class Xrohr {
 
   // ==================================== PUBLIC =============================== //
 
-  public start = () => {
-    this.expressApp.listen(this.port);
+  public start = async (): Promise<void> => {
+    return new Promise((resolve) => {
+      this.expressApp.listen(this.port, () => {
+        resolve();
+      });
+    });
   };
 
   public getExpressApp = () => {
@@ -148,7 +150,6 @@ class Xrohr {
       throw new Error("Memoria module is not enabled in the configuration.");
     return this.memoriaApp;
   };
-
 
   public createMemories = (name: string, key: string): ReturnTemplate => {
     try {
