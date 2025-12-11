@@ -148,6 +148,7 @@ class RouterManager {
         try {
           // 1. Resource Check
           const memoria = memoriaApp.getMemoriesCollection(route.construct.resource);
+          console.log("Memoria: ", memoria);
           if (!memoria)
             throw new Error(`Resource ${route.construct.resource} not found`);
 
@@ -169,6 +170,8 @@ class RouterManager {
               rawInput = req.body;
             }
           }
+
+          console.log("RAW INPUT: ", rawInput)
 
           // 3. Helper: Prepare Data for Memoria
           // This ensures 'get/remove' receives a String, and 'set' receives an Object.
@@ -214,6 +217,7 @@ class RouterManager {
           } else {
             // Single Mode
             const processed = processItem(rawInput);
+            console.log("Processed Input: ", processed);
             // @ts-ignore
             const opResult = memoria[method](processed);
             // If opResult is undefined (like in set/remove), return the ID/Data instead for clarity

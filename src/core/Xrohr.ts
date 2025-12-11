@@ -185,10 +185,16 @@ class Xrohr {
     return this.rheosApp;
   };
 
-  public executeAxiosCalls = async (priority: number) => {
+  public executeBulkAxiosCalls = async (priority: number) => {
     if (!this.rheosEnabled)
       throw new Error("Rheos module is not enabled in the configuration.");
-    return await this.rheosApp.executeAutoCalls(priority);
+    return await this.rheosApp.executeBulkCalls(priority);
+  };
+
+  public executeSingleAxiosCall = async (name: string) => {
+    if (!this.rheosEnabled)
+      throw new Error("Rheos module is not enabled in the configuration.");
+    return await this.rheosApp.executeSingleCall(name);
   };
 
   public getMiddlewareManager = () => {

@@ -1,3 +1,9 @@
+export interface AxiosResult {
+  success: boolean;
+  data?: any;
+  error?: any;
+}
+
 /**
  * AxiosCall interface for configuring HTTP requests.
  * @interface AxiosCall
@@ -18,4 +24,5 @@ export interface AxiosCall {
     timeout?: number;
     priority?: number;
     tryWithSubURL: boolean;
+    onResponse?: (result: AxiosResult) => void | Promise<void>;
 }
