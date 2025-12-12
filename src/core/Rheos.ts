@@ -100,8 +100,8 @@ class Rheos {
    * If you manually constructed a config object or heavily modified one.
    */
   public executeConfig = async (config: AxiosCall): Promise<AxiosResult> => {
-      return await this.performRequest(config, this.config.baseURL);
-  }
+    return await this.performRequest(config, this.config.baseURL);
+  };
 
   /**
    * EXECUTION ENGINE
@@ -172,7 +172,9 @@ class Rheos {
   }
 
   private performRequest = async (config: AxiosCall, baseURL: string) => {
-    const url = baseURL + config.endpoint;
+    const url = config.absoluteUri
+      ? config.endpoint
+      : baseURL + config.endpoint;
 
     // Dynamic Data Generation
     let requestData = config.data;

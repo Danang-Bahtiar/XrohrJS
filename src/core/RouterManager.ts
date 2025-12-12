@@ -14,11 +14,13 @@ import Memories from "./Memories.js";
 class RouterManager {
   private routeCollection: Map<string, any>;
   private constructCollection: Map<string, any>;
+  private sentEndpoint: Map<string, any>;
   private prefix!: string;
 
   constructor() {
     this.routeCollection = new Map<string, any>();
     this.constructCollection = new Map<string, any>();
+    this.sentEndpoint = new Map<string, any>();
   }
 
   public init = async (
@@ -67,12 +69,21 @@ class RouterManager {
     const routes = routeConfig.routes as TemplateRecipe[];
 
     for (const route of routes) {
+      // 2. Construct the full path
+      const fullPath = `${this.prefix}${basePath}${route.path}`;
+      const routeKey = `${route.method.toUpperCase()}-${route.name}`;
+
+      const check = this.routeCollection.get(routeKey)
+
+      if (fullPath === check) {
+        continue;
+      }
+
       // 1. Get the actual middleware functions from the manager
       const middlewareChain = middlewareManager.getExpressMiddlewares(
         route.middlewares
       );
-
-      const routeKey = `${route.method.toUpperCase()}-${route.name}`;
+      
 
       // Check for unregistered middleware
       if (middlewareChain.length !== route.middlewares.length) {
@@ -80,9 +91,6 @@ class RouterManager {
           `[WARN] Some middlewares for route ${basePath}${route.path} were not found. Skipping.`
         );
       }
-
-      // 2. Construct the full path
-      const fullPath = `${this.prefix}${basePath}${route.path}`;
 
       // 3. Register the route with the chain of functions
       // The spread operator (...) unpacks the array of middleware
@@ -112,7 +120,7 @@ class RouterManager {
       }
 
       // Cache the route for your own reference if needed
-      this.routeCollection.set(routeKey, route);
+      this.routeCollection.set(routeKey, fullPath);
       console.log(
         `  ✔️  Registered: ${route.method.toUpperCase()} ${fullPath}`
       );
@@ -144,6 +152,16 @@ class RouterManager {
     };
 
     for (const route of routes) {
+      const fullPath = `${this.prefix}${basePath}${route.path}`;
+      const routeKey = `${route.method.toUpperCase()}-${route.name}`;
+
+      const check = this.sentEndpoint.get(routeKey);
+
+      if (fullPath === check) {
+        // out.. skip config
+        continue;
+      }
+      
       const handler = async (req: Request, res: Response) => {
         try {
           // 1. Resource Check
@@ -234,7 +252,6 @@ class RouterManager {
       const middlewareChain = middlewareManager.getExpressMiddlewares(
         route.middlewares
       );
-      const fullPath = `${this.prefix}${basePath}${route.path}`;
 
       const handlerChain = [...middlewareChain, handler];
       switch (route.method) {
@@ -258,6 +275,7 @@ class RouterManager {
           continue;
       }
 
+      this.sentEndpoint.set(routeKey, fullPath);
       console.log(
         `  ✔️  Constructed: ${route.method.toUpperCase()} ${fullPath}`
       );

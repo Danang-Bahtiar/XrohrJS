@@ -24,5 +24,6 @@ export interface AxiosCall {
     timeout?: number;
     priority?: number;
     tryWithSubURL: boolean;
+    absoluteUri: boolean;
     onResponse?: (result: AxiosResult) => void | Promise<void>;
 }
