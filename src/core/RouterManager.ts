@@ -290,6 +290,14 @@ class RouterManager {
 
     return array;
   };
+
+  public getRegisteredEndpoint = () => {
+    return this.routeCollection;
+  }
+
+  public getConstructEndpoint = () => {
+    return this.constructCollection;
+  }
 }
 
 export default RouterManager;
