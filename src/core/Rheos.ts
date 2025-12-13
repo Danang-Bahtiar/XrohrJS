@@ -139,6 +139,10 @@ class Rheos {
     return resultMap;
   };
 
+  public getAllConfig () {
+    return this.universalMemoria;
+  }
+
   // =========================== PRIVATE UTILITIES =========================== //
 
   private registerCall(config: AxiosCall) {
