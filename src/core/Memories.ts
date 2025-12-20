@@ -20,6 +20,7 @@ class Memories {
     this.primaryKey = primaryKey;
     this.schema = new Map();
 
+    console.log("MEMORIES SCHEMA: ", schemaDef);
     // Parse Schema (same as before)
     if (schemaDef) {
       let definitions: SchemaDefinition =
