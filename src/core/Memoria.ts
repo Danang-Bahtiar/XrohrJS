@@ -1,3 +1,4 @@
+import { SchemaDefinition } from "../types/Memoria.type.js";
 import Memories from "./Memories.js";
 
 class Memoria {
@@ -11,9 +12,7 @@ class Memoria {
   // CREATE
   // ----------------------------------------
   public createMemoriesCollection(
-    name: string,
-    primaryKey: string
-  ): Memories {
+name: string, primaryKey: string, p0?: string | SchemaDefinition | undefined  ): Memories {
     if (this.memoriesCollections.has(name)) {
       throw new Error(`Memories collection with name ${name} already exists.`);
     }

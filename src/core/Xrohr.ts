@@ -10,6 +10,7 @@ import Memoria from "./Memoria.js";
 import MiddlewareManager from "./MiddlewareManager.js";
 import { ReturnTemplate } from "../types/Return.type.js";
 import { RouterTemplate } from "../types/Router.types.js";
+import { SchemaDefinition } from "../types/Memoria.type.js";
 
 class Xrohr {
   private expressApp: Server;
@@ -151,14 +152,14 @@ class Xrohr {
     return this.memoriaApp;
   };
 
-  public createMemories = (name: string, key: string): ReturnTemplate => {
+  public createMemories = (name: string, key: string, schemaDef: SchemaDefinition | string): ReturnTemplate => {
     try {
       if (!this.memoriaEnabled)
         throw new Error("Memoria module is not enabled in the configuration.");
 
       let memoria = this.memoriaApp.getMemoriesCollection(name);
       if (!memoria) {
-        memoria = this.memoriaApp.createMemoriesCollection(name, key);
+        memoria = this.memoriaApp.createMemoriesCollection(name, key, schemaDef);
       }
 
       return {
