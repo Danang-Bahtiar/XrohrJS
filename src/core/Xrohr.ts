@@ -152,14 +152,24 @@ class Xrohr {
     return this.memoriaApp;
   };
 
-  public createMemories = (name: string, key: string, schemaDef: SchemaDefinition | string): ReturnTemplate => {
+  public createMemories = (
+    name: string,
+    key: string,
+    schemaDef: SchemaDefinition | string
+  ): ReturnTemplate => {
     try {
       if (!this.memoriaEnabled)
         throw new Error("Memoria module is not enabled in the configuration.");
 
+      console.log("MEMORIES SCHEMA: ", schemaDef);
+
       let memoria = this.memoriaApp.getMemoriesCollection(name);
       if (!memoria) {
-        memoria = this.memoriaApp.createMemoriesCollection(name, key, schemaDef);
+        memoria = this.memoriaApp.createMemoriesCollection(
+          name,
+          key,
+          schemaDef
+        );
       }
 
       return {
