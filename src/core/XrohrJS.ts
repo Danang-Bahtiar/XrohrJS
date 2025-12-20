@@ -4,6 +4,7 @@ import { MiddlewareTemplate } from "../types/Middleware.types.js";
 import { SparkLiteEvent } from "../types/Event.type.js";
 import { AxiosCall } from "../types/Rheos.types.js";
 import Xrohr from "./Xrohr.js";
+import { SchemaDefinition } from "../types/Memoria.type.js";
 
 class XrohrJS {
   constructor() {}
@@ -69,6 +70,10 @@ class XrohrJS {
   static AxiosCall = (config: AxiosCall) => {
     return config;
   };
+
+  static MemoriaSchema = (schema: SchemaDefinition) => {
+    return schema;
+  }
 }
 
 export default XrohrJS;
