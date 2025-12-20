@@ -12,12 +12,15 @@ class Memoria {
   // CREATE
   // ----------------------------------------
   public createMemoriesCollection(
-name: string, primaryKey: string, p0?: string | SchemaDefinition | undefined  ): Memories {
+    name: string,
+    primaryKey: string,
+    p0?: string | SchemaDefinition | undefined
+  ): Memories {
     if (this.memoriesCollections.has(name)) {
       throw new Error(`Memories collection with name ${name} already exists.`);
     }
 
-    const newCollection = new Memories(primaryKey);
+    const newCollection = new Memories(primaryKey, p0);
     this.memoriesCollections.set(name, newCollection);
     return newCollection;
   }
