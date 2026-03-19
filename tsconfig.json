@@ -1,6 +1,6 @@
 {
   "compilerOptions": {
-    "target": "ES2020",              // Supports modern JS features
+    "target": "es2024",              // Changed to ES2024 for the latest stable features
     "module": "node16",            // For Node.js compatibility
     "moduleResolution": "node16",
     "outDir": "./dist",              // Compiled output

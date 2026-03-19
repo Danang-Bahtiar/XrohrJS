@@ -1,8 +1,9 @@
 import { glob } from "glob";
 import path from "path";
-import { AxiosCall, AxiosResult } from "../types/Rheos.types.js";
 import axios from "axios";
-import { AxiosConfig } from "../config/Xrohr.config.js";
+import { AxiosConfig } from "../../config/Xrohr.config.js";
+import { AxiosCall, AxiosResult } from "./Rheos.types.js";
+
 
 // 🎨 Visual Styling Helpers
 const style = {
@@ -218,7 +219,7 @@ class Rheos {
         `${style.red}[RHEOS] ❌ Failed:  ${config.name} -> ${errMsg}${style.reset}`
       );
 
-      result = { success: false, error };
+      result = { success: false, error: error.response };
     }
 
     if (config.onResponse) {

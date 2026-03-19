@@ -1,4 +1,4 @@
-import { SchemaDefinition } from "../types/Memoria.type.js";
+import { SchemaDefinition } from "./Memoria.type.js";
 import Memories from "./Memories.js";
 
 class Memoria {
@@ -11,6 +11,16 @@ class Memoria {
   // ----------------------------------------
   // CREATE
   // ----------------------------------------
+  /**
+   * createMemoriesCollection
+   * Creates a new memories collection with the specified name, primary key, and schema definition.
+   * Work akin to a table in a database.
+   * @param name - Name of the memories collection.
+   * @param primaryKey - Primary key field for the collection.
+   * @param p0 - Optional schema definition or string.
+   * string should be a valid JSON representation of SchemaDefinition. (e.g. if schema was received from API response.)
+   * @returns 
+   */
   public createMemoriesCollection(
     name: string,
     primaryKey: string,

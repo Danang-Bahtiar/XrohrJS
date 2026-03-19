@@ -1,7 +1,7 @@
 import EventEmitter from "events";
 import { glob } from "glob";
 import path from "path";
-import { SparkLiteEvent } from "../types/Event.type.js";
+import { SparkLiteEvent } from "./Event.type.js";
 
 class SparkLite {
   private app: EventEmitter;

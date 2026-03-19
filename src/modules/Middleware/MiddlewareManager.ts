@@ -1,14 +1,14 @@
 import { glob } from "glob";
 import path from "path";
-import { MiddlewareTemplate } from "../types/Middleware.types.js";
+import { MiddlewareTemplate } from "./Middleware.types.js";
 
 class MiddlewareManager {
-  private middlewareCollection: Map<string, any>;
-  private independentMiddleware: Map<string, any>;
+  private expressMiddlewares: Map<string, any>;
+  private independentMiddlewares: Map<string, any>;
 
   constructor() {
-    this.middlewareCollection = new Map<string, any>();
-    this.independentMiddleware = new Map<string, any>();
+    this.expressMiddlewares = new Map<string, any>();
+    this.independentMiddlewares = new Map<string, any>();
   }
 
   public init = async () => {
@@ -22,8 +22,8 @@ class MiddlewareManager {
     for (const file of files) {
       const filePath = `file://${file.replace(/\\/g, "/")}`;
       const middlewareModule = await import(`${filePath}?update=${Date.now()}`);
-
       const middlewareConfig: MiddlewareTemplate = middlewareModule.default;
+
       if (
         !middlewareConfig.name ||
         typeof middlewareConfig.handler !== "function"
@@ -32,12 +32,15 @@ class MiddlewareManager {
         continue;
       }
 
-      console.log(`[Middleware] Loading middleware: ${middlewareConfig.name}`);
+      console.log(`[MIDDLEWARE] Loading middleware: ${middlewareConfig.name}`);
 
       if (middlewareConfig.type === "express") {
-        this.middlewareCollection.set(middlewareConfig.name, middlewareConfig);
+        this.expressMiddlewares.set(middlewareConfig.name, middlewareConfig);
       } else {
-        this.independentMiddleware.set(middlewareConfig.name, middlewareConfig);
+        this.independentMiddlewares.set(
+          middlewareConfig.name,
+          middlewareConfig
+        );
       }
     }
   };
@@ -46,7 +49,7 @@ class MiddlewareManager {
     const middlewares = [];
 
     for (const mw of middlewaresName) {
-      const module = this.middlewareCollection.get(mw);
+      const module = this.expressMiddlewares.get(mw);
 
       if (module) {
         middlewares.push(module.handler);
@@ -57,8 +60,8 @@ class MiddlewareManager {
   };
 
   public getIndependentMiddleware = (middlewareName: string) => {
-    if (this.independentMiddleware.get(middlewareName)) {
-      return this.independentMiddleware.get(middlewareName);
+    if (this.independentMiddlewares.get(middlewareName)) {
+      return this.independentMiddlewares.get(middlewareName);
     }
   };
 }

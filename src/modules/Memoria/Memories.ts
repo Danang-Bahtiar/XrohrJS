@@ -1,4 +1,4 @@
-import { SchemaDefinition, SchemaField } from "../types/Memoria.type.js";
+import { SchemaDefinition, SchemaField } from "./Memoria.type.js";
 
 function getNestedValue(obj: any, path: string): any {
   return path.split(".").reduce((acc, part) => acc && acc[part], obj);
@@ -19,9 +19,8 @@ class Memories {
   constructor(primaryKey: string, schemaDef?: SchemaDefinition | string) {
     this.primaryKey = primaryKey;
     this.schema = new Map();
-
-    console.log("MEMORIES SCHEMA: ", schemaDef);
-    // Parse Schema (same as before)
+    
+    // Parse Schema
     if (schemaDef) {
       let definitions: SchemaDefinition =
         typeof schemaDef === "string" ? JSON.parse(schemaDef) : schemaDef;
@@ -37,7 +36,7 @@ class Memories {
     this.errorStacks = new Map();
 
     this.Locks = new Map();
-    this.indexRules = new Map(); // Changed from Set to Map
+    this.indexRules = new Map();
 
     if (this.schema.size > 0) {
       this.registerIndicesFromSchema(this.schema);

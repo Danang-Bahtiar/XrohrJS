@@ -1,228 +1,274 @@
 import express from "express";
-import RouterManager from "./RouterManager.js";
+import RouterManager from "../modules/Router/RouterManager.js";
 import { loadConfig } from "../loaders/config.loader.js";
-import cors, { CorsOptions } from "cors";
-import { ServerConfig } from "../config/Xrohr.config.js";
+import cors from "cors";
 import Server from "./Server.js";
-import SparkLite from "./SparkLite.js";
-import Rheos from "./Rheos.js";
-import Memoria from "./Memoria.js";
-import MiddlewareManager from "./MiddlewareManager.js";
-import { ReturnTemplate } from "../types/Return.type.js";
-import { RouterTemplate } from "../types/Router.types.js";
-import { SchemaDefinition } from "../types/Memoria.type.js";
+import Memoria from "../modules/Memoria/Memoria.js";
+import MiddlewareManager from "../modules/Middleware/MiddlewareManager.js";
+import SparkLite from "../modules/SparkLite/SparkLite.js";
+import Rheos from "../modules/Rheos/Rheos.js";
+import XRohrUtils from "./Utils.js";
+import SimplexRouterManager from "../modules/Router/SimplexRouterManager.js";
 
 class Xrohr {
+  // Server
   private expressApp: Server;
-  private routerManager: RouterManager;
   private port!: number;
-  private sparkLiteApp!: SparkLite;
-  private sparkLiteEnabled: boolean = false;
-  private rheosApp!: Rheos;
-  private rheosEnabled: boolean = false;
-  private memoriaApp!: Memoria;
-  private memoriaEnabled: boolean = false;
+
+  // Middleware
   private middlewareManager: MiddlewareManager;
 
+  // Memoria Module
+  private memoriaEnabled: boolean = false;
+  private memoriaApp!: Memoria;
+
+  // SparkLite Module
+  private sparkLiteEnabled: boolean = false;
+  private sparkLiteApp!: SparkLite;
+
+  // Axios Module
+  private rheosEnabled: boolean = false;
+  private rheosApp!: Rheos;
+
+  // Actua Module
+  private routerManager!: RouterManager | SimplexRouterManager;
+
+  // API Config
+  private autoHydrateAPI: boolean = false;
+  private syncSecret: string = "";
+
   constructor() {
-    this.routerManager = new RouterManager();
     this.middlewareManager = new MiddlewareManager();
     this.expressApp = new Server();
   }
 
-  // ==================================== PRIVATE =============================== //
-  private logSection = (name: string) => {
-    console.log(`\n========================================`);
-    console.log(`   🚀 STARTING MODULE: ${name}`);
-    console.log(`========================================`);
-  };
-
+  /**
+   * Initializes the Xrohr application by loading configuration, setting up middleware, and initializing modules.
+   */
   private initialize = async () => {
     // 1. Load Config
-    this.logSection("CONFIGURATION");
+    XRohrUtils.logSection("CONFIGURATION");
     const config = await loadConfig();
     this.port = config.server.port;
     console.log(`[CONFIG] Loaded configuration. Port set to: ${this.port}`);
 
-    // 2. Initialize Middleware Manager
-    this.logSection("MIDDLEWARE MANAGER");
-    await this.middlewareManager.init();
-    console.log("[MIDDLEWARE] Middleware Manager initialized.");
+    // 2. Middleware Setup
+    XRohrUtils.logSection("MIDDLEWARE SETUP");
+    if (config.middleware.isEnabled) {
+      await this.middlewareManager.init();
+      console.log("[MIDDLEWARE] Middleware Manager initialized.");
+    }
 
     // 3. Express Core Setup
-    this.logSection("EXPRESS CORE");
+    XRohrUtils.logSection("EXPRESS SERVER SETUP");
     if (config.server.useDefaultCors) {
       this.expressApp.getApp().use(cors());
       console.log("[SERVER] Using default CORS configuration.");
     } else {
-      const corsConfig = this.createCorsConfig(config.server);
+      const corsConfig = XRohrUtils.createCorsConfig(config.server);
       this.expressApp.getApp().use(cors(corsConfig));
       console.log("[SERVER] Using custom CORS configuration.");
     }
-
     if (config.server.useJsonParser) {
       this.expressApp.getApp().use(express.json());
       console.log("[SERVER] JSON Parser enabled.");
     }
-
     if (config.server.useUrlEncoded) {
       this.expressApp.getApp().use(express.urlencoded({ extended: true }));
       console.log("[SERVER] URL Encoded Parser enabled.");
     }
 
-    // 4. Memoria (Synchronous init, but good to log)
-    if (config.memoria.enabled) {
-      this.logSection("MEMORIA (CACHE)");
-      this.memoriaApp = new Memoria();
+    // 4. Memoria
+    if (config.memoria.isEnabled) {
+      XRohrUtils.logSection("MEMORIA (IN-MEMORY STORAGE)");
       this.memoriaEnabled = true;
+      this.memoriaApp = new Memoria();
       console.log("[MEMORIA] In-memory storage initialized.");
     }
 
-    // 5. SparkLite (Events) - Await ensure events are ready before routes
-    if (config.sparkLite.enabled) {
-      this.logSection("SPARKLITE (EVENTS)");
+    // 5. SparkLite
+    if (config.sparkLite.isEnabled) {
+      XRohrUtils.logSection("SPARKLITE (EVENTS)");
       this.sparkLiteEnabled = true;
       this.sparkLiteApp = new SparkLite();
-      await this.sparkLiteApp.load(); // Explicit await
+      await this.sparkLiteApp.load();
       console.log("[SPARKLITE] Event system ready.");
     }
 
-    // 6. Rheos (Axios) - Await ensures API clients are ready
-    if (config.axios.enabled) {
-      this.logSection("RHEOS (HTTP CLIENT)");
+    // 6. Rheos
+    if (config.axios.isEnabled) {
+      XRohrUtils.logSection("RHEOS (HTTP CLIENT)");
       this.rheosEnabled = true;
       this.rheosApp = new Rheos(config.axios);
-      await this.rheosApp.load(); // Explicit await
+      await this.rheosApp.load();
       console.log("[RHEOS] HTTP Client wrappers loaded.");
     }
 
-    // 7. Router (Last) - Routes might depend on Events/Axios, so load this last
-    if (config.router.useDefaultRouterRegistration) {
-      this.logSection("ROUTER MANAGER");
-      // Ensure routerManager.init is treated as async if it does file loading
-      await this.routerManager.init(
-        this.expressApp,
-        config.router.apiPrefix,
-        this.middlewareManager
-      );
-      console.log("[ROUTER] All routes registered successfully.");
+    // 7. Router
+    XRohrUtils.logSection("ROUTER MANAGER");
+    if (config.restApi.useSimplex) {
+      this.routerManager = new SimplexRouterManager(config.restApi.apiPrefix);
+    } else {
+      this.routerManager = new RouterManager(config.restApi.apiPrefix);
     }
 
-    console.log(`\n========================================`);
-    console.log(`   ✨ SYSTEM INITIALIZATION COMPLETE`);
-    console.log(`========================================\n`);
-  };
+    await this.routerManager.init(this.expressApp, this.middlewareManager);
+    console.log("[ROUTER] All routes registered successfully.");
 
-  private createCorsConfig = (config: ServerConfig): CorsOptions => {
-    return {
-      origin: (origin, callback) => {
-        if (!origin || config.allowedOrigins?.includes(origin)) {
-          callback(null, true);
-        } else {
-          callback(new Error("This origin is not allowed by CORS"));
-        }
-      },
-      methods: config.allowedMethods,
-    };
+    // 8. Default Event Register
+    XRohrUtils.logSection("DEFAULT EVENT REGISTRATION");
+    // If using Simplex, register a default event listener for API calls
+    if (config.restApi.useSimplex && this.sparkLiteEnabled) {
+      // Register the Event that would be called by Global Route
+      XRohrUtils.apiCallEvent(
+        this.sparkLiteApp,
+        this.routerManager as SimplexRouterManager,
+        this.middlewareManager,
+      );
+      console.log("[DEFAULT EVENT] API_CALL event registered.");
+
+      // Register the Global Route
+      XRohrUtils.globalRouteHandler(
+        config.restApi.apiPrefix,
+        this.expressApp,
+        this.sparkLiteApp,
+      );
+      console.log("[DEFAULT EVENT] GLOBAL_ROUTE_HANDLER registered.");
+    }
+
+    if (config.defaults.edgeNode?.apiRegisterEvent) {
+      XRohrUtils.apiRegisterEvent(
+        this.sparkLiteApp,
+        this.expressApp,
+        this.memoriaApp,
+        this.routerManager,
+        this.rheosApp,
+      );
+      console.log("[DEFAULT EVENT] API_REGISTER event registered.");
+    }
+
+    /**  Require autoHydrateAPI in main server to be true and allowAutoHydrate in edge node to be true to enable this feature. This is to prevent accidental auto-hydration that may cause issues in production if not properly configured. */
+    if (config.defaults.edgeNode?.allowAutoHydrate) {
+      XRohrUtils.autoHydrateRouteHandler(
+        this.expressApp,
+        this.sparkLiteApp,
+        config.defaults.topology.syncSecret,
+        this.memoriaApp,
+      );
+      console.log(
+        "[DEFAULT EVENT] Auto-hydration API endpoint registered for edge node.",
+      );
+    }
+
+    if (config.defaults.mainNode?.autoHydrateAPI) {
+      this.autoHydrateAPI = true;
+      const rawBase = config.axios.baseURL || "http://localhost:3001";
+      const normalizedBase = rawBase.startsWith("http")
+        ? rawBase
+        : `http://${rawBase}`;
+      const baseAddress = new URL(normalizedBase).origin;
+      XRohrUtils.apiDeliverEvent(
+        this.sparkLiteApp,
+        this.rheosApp,
+        `${baseAddress}/__xrohr__/auto-hydrate`,
+      );
+      console.log("[DEFAULT EVENT] API_DELIVER event registered.");
+
+      this.syncSecret = config.defaults.topology.syncSecret;
+
+      console.log(
+        "[DEFAULT EVENT] Auto-hydration on startup is enabled. Main server will deliver API calls to edge nodes to push latest ConstructRecipes on startup.",
+      );
+    }
+
+    console.log(
+      "\n[XROHR] Initialization complete. Ready to start the server.",
+    );
+    console.log("========================================");
+    if (config.defaults.topology.isEdgeNode) {
+      console.log("   🌐 STARTING APPLICATION: EDGE NODE   ");
+    } else {
+      console.log("   🏛️ STARTING APPLICATION: MAIN SERVER ");
+    }
+    console.log("========================================");
   };
 
   // ==================================== PUBLIC =============================== //
 
-  public start = async (): Promise<void> => {
-    return new Promise((resolve) => {
-      this.expressApp.listen(this.port, () => {
-        resolve();
-      });
-    });
+  /**
+   * @throws {Error} If Memoria module is not enabled in the configuration.
+   * @returns {Memoria} memoriaApp - The Memoria instance.
+   */
+  public getMemoriaApp = (): Memoria => {
+    if (!this.memoriaEnabled)
+      throw new Error("Memoria module is not enabled in the configuration.");
+
+    return this.memoriaApp;
   };
 
-  public getExpressApp = () => {
-    return this.expressApp;
-  };
-
-  public getSparkLiteApp = () => {
+  /**
+   * @throws {Error} If SparkLite module is not enabled in the configuration.
+   * @returns {SparkLite} sparkLiteApp - The SparkLite instance.
+   */
+  public getSparkLiteApp = (): SparkLite => {
     if (!this.sparkLiteEnabled)
       throw new Error("SparkLite module is not enabled in the configuration.");
     return this.sparkLiteApp;
   };
 
-  public getMemoriaApp = () => {
-    if (!this.memoriaEnabled)
-      throw new Error("Memoria module is not enabled in the configuration.");
-    return this.memoriaApp;
-  };
-
-  public createMemories = (
-    name: string,
-    key: string,
-    schemaDef: SchemaDefinition | string
-  ): ReturnTemplate => {
-    try {
-      if (!this.memoriaEnabled)
-        throw new Error("Memoria module is not enabled in the configuration.");
-
-      console.log("MEMORIES SCHEMA: ", schemaDef);
-
-      let memoria = this.memoriaApp.getMemoriesCollection(name);
-      if (!memoria) {
-        memoria = this.memoriaApp.createMemoriesCollection(
-          name,
-          key,
-          schemaDef
-        );
-      }
-
-      return {
-        status: "Success",
-        message: `Memoria for ${name} has been successfully created!`,
-        error: null,
-        data: memoria,
-      };
-    } catch (error) {
-      return {
-        status: "Failed",
-        message: null,
-        error:
-          error instanceof Error
-            ? error.message
-            : "Unknown Problems. Try again later.",
-      };
-    }
-  };
-
-  public getAxiosApp = () => {
+  /**
+   * @throws {Error} If Rheos module is not enabled in the configuration.
+   * @returns {Rheos} rheosApp - The Rheos instance.
+   */
+  public getRheosApp = (): Rheos => {
     if (!this.rheosEnabled)
       throw new Error("Rheos module is not enabled in the configuration.");
     return this.rheosApp;
   };
 
-  public executeBulkAxiosCalls = async (priority: number) => {
-    if (!this.rheosEnabled)
-      throw new Error("Rheos module is not enabled in the configuration.");
-    return await this.rheosApp.executeBulkCalls(priority);
+  /**
+   * @returns {Server} expressApp - The Express application instance.
+   */
+  public getExpressApp = (): Server => {
+    return this.expressApp;
   };
 
-  public executeSingleAxiosCall = async (name: string) => {
-    if (!this.rheosEnabled)
-      throw new Error("Rheos module is not enabled in the configuration.");
-    return await this.rheosApp.executeSingleCall(name);
-  };
-
-  public getMiddlewareManager = () => {
-    return this.middlewareManager;
-  };
-
-  public registerConstructRoutes = async (routeConfig: RouterTemplate) => {
-    return this.routerManager.constructLoader(
-      routeConfig,
-      this.memoriaApp,
-      this.middlewareManager,
-      this.expressApp
-    );
-  };
-
-  public getRouterManager = () => {
+  /**
+   *
+   * @returns {SimplexRouterManager|RouterManager} routerManager - The RouterManager Instance.
+   */
+  public getRouterManager = (): SimplexRouterManager | RouterManager => {
     return this.routerManager;
+  };
+
+  /**
+   * Starts the Express server on the configured port.
+   * @returns A promise that resolves when the server is started.
+   */
+  public start = async (): Promise<void> => {
+    return new Promise((resolve) => {
+      this.expressApp.listen(this.port, () => {
+        try {
+          // @TODO: Check for Startup Events
+          if (this.autoHydrateAPI) {
+            const constructMap = this.routerManager.getConstructIndex();
+
+            const constructObject = Object.fromEntries(constructMap);
+
+            this.sparkLiteApp.Publish("API_DELIVER", {
+              configurationMap: constructObject,
+              mainSyncSecret: this.syncSecret,
+            });
+
+            this.syncSecret = "";
+          }
+        } catch (error) {
+          // @TODO: Handle startup event errors (e.g., log them, retry logic, etc.)
+          console.error("[XROHR] Error during startup events:", error);
+        }
+        resolve();
+      });
+    });
   };
 }
 

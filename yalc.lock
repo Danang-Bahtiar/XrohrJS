@@ -1,0 +1,9 @@
+{
+  "version": "v1",
+  "packages": {
+    "@dan_koyuki/xrohrjs": {
+      "signature": "ae98e821e99b4e7d46d4c7a657816403",
+      "file": true
+    }
+  }
+}
