@@ -150,8 +150,6 @@ class ConstructFactory {
 
         const mainServerResponse = await rheosApp["performRequest"](rheosConfig, "");
 
-        console.log("[DEBUG CREATE SIMPLEX FORWARD HANDLER]: ", mainServerResponse);
-
         return mainServerResponse;
       } catch (error: any) {
         const errMsg =

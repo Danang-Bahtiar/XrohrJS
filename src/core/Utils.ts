@@ -21,9 +21,6 @@ class XRohrUtils {
     // Note: We use app.all() to catch all HTTP methods, but we will enforce method checks inside the handler
     // the API will forbid physical GET request, and only allow POST/PUT/DELETE with a body containing { id, method, data }
     app.all(new RegExp(`^/${prefix}/(.*)`), async (req, res) => {
-      console.log("[DEBUG GLOBALROUTEHANDLER] REQUEST HEADERS: ", req.headers);
-      console.log("[DEBUG GLOBALROUTEHANDLER] REQUEST METHOD: ", req.method);
-      console.log("[DEBUG GLOBALROUTEHANDLER] REQUEST BODY: ", req.body);
       // 1. Immediate Method Check
       if (req.method === "GET") {
         return res.status(400).json({
@@ -62,7 +59,6 @@ class XRohrUtils {
   ) => {
     sparkliteApp.Subscribe("API_CALL", async (data, resolver) => {
       try {
-        console.log("[DEBUG API CALL EVENT]: ", data);
         // 1. Try to run the engine
         const result = await routerManager.callSimplexAPI(
           data.id,

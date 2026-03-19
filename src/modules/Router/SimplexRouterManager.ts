@@ -112,7 +112,6 @@ class SimplexRouterManager {
       }
 
       if (routeConfig.source.sourceType === "forward") {
-        console.log("[DEBUG REGISTER ROUTE SIMPLEX]: ", routeConfig);
 
         routeConfig.handler = this.constructFactory.createSimplexForwarHandler(
           routeConfig.source as ForwardSource, rheosApp
@@ -124,8 +123,6 @@ class SimplexRouterManager {
           middlewares: [], // Edge nodes usually skip middleware
           handler: routeConfig.handler,
         };
-
-        console.log("[DEBUG REGISTER ROUTE SIMPLEX] ROUTE ENTRY: ", routeEntry);
 
         this.routerIndex.set(routeConfig.id, routeEntry);
       } else if (routeConfig.source.sourceType === "memoria") {
@@ -173,8 +170,6 @@ class SimplexRouterManager {
 
     const route = this.routerIndex.get(routeId);
 
-    console.log("[DEBUG CALL SIMPLEX API] ROUTE DATA: ", route)
-
     if (!route) throw new Error(`Route with ID '${routeId}' not found.`);
     if (route.method.toLowerCase() !== method.toLowerCase()) {
       throw new Error(`HTTP method mismatch for route '${routeId}'.`);
@@ -213,7 +208,6 @@ class SimplexRouterManager {
         } else {
           // 4. All middlewares passed! Execute the final route handler
           try {
-            console.log(`[DEBUG CALL SIMPLEX API] ${route.id}: `, mockReq);
             const result = await route.handler(mockReq, mockRes);
 
             // If the handler returned data directly instead of using res.json()
