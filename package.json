@@ -1,6 +1,6 @@
 {
   "name": "@dan_koyuki/xrohrjs",
-  "version": "2.0.0",
+  "version": "2.0.1",
   "description": "An express.js framework built with TypeScript",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
@@ -57,5 +57,5 @@
   "bugs": {
     "url": "https://github.com/Danang-Bahtiar/XrohrJS/issues"
   },
-  "homepage": "https://portfolio.irwantodan.dev/project/xrohr"
+  "homepage": "https://new-web-profile.vercel.app/Projects/XRohrjs#docs"
 }
