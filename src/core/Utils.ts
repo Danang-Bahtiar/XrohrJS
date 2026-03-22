@@ -206,7 +206,7 @@ class XRohrUtils {
           callback(new Error("This origin is not allowed by CORS"));
         }
       },
-      methods: config.allowedMethods,
+      methods: config.allowedMethods || ["GET", "POST", "PUT", "DELETE"],
     };
   };
 

@@ -241,6 +241,10 @@ class Xrohr {
     return this.routerManager;
   };
 
+  public getMiddlewareManager = () => {
+    return this.middlewareManager;
+  }
+
   /**
    * Starts the Express server on the configured port.
    * @returns A promise that resolves when the server is started.
