@@ -57,7 +57,7 @@ class XRohrUtils {
     routerManager: SimplexRouterManager,
     middlewareManager: MiddlewareManager,
   ) => {
-    sparkliteApp.put cribe("API_CALL", async (data, resolver) => {
+    sparkliteApp.Subscribe("API_CALL", async (data, resolver) => {
       try {
         // 1. Try to run the engine
         const result = await routerManager.callSimplexAPI(
