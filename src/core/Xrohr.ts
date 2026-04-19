@@ -75,7 +75,7 @@ class Xrohr {
       type: nodeType,
       modules: [],
       services: [],
-      version: "2.3.5",
+      version: "2.3.6",
     };
 
     XRohrUtils.logSection("ROUTER MANAGER");
