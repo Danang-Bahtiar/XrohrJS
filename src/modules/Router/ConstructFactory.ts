@@ -139,16 +139,15 @@ class ConstructFactory {
                 "Content-Type": "application/json",
               },
           // 3. The Payload Wrapper (Crucial for Simplex Inception!)
-          data: {
+          body: {
             id: construct.targetId,
             method: construct.targetMethod,
-            data: req.body,
+            data: req.body.data,
           },
-          tryWithSubURL: false,
           absoluteUri: true,
         };
 
-        const mainServerResponse = await rheosApp["performRequest"](rheosConfig, "");
+        const mainServerResponse = await rheosApp.performConfigCall(rheosConfig);;
 
         return mainServerResponse;
       } catch (error: any) {
@@ -185,14 +184,12 @@ class ConstructFactory {
             : {
                 "Content-Type": "application/json",
               },
-          // 3. The Payload Wrapper (Crucial for Simplex Inception!)
-          data: req.body,
-          tryWithSubURL: false,
+          body: req.body,
           absoluteUri: true,
           endpoint: construct.resource,
         };
 
-        const mainServerResponse = rheosApp.executeConfig(rheosConfig);
+        const mainServerResponse = await rheosApp.performConfigCall(rheosConfig);
 
         // return res.status(mainServerResponse.status).json(responseData);
       } catch (error: any) {

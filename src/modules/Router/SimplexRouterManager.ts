@@ -112,9 +112,9 @@ class SimplexRouterManager {
       }
 
       if (routeConfig.source.sourceType === "forward") {
-
         routeConfig.handler = this.constructFactory.createSimplexForwarHandler(
-          routeConfig.source as ForwardSource, rheosApp
+          routeConfig.source as ForwardSource,
+          rheosApp,
         );
 
         const routeEntry: SimplexExpressRoute = {
@@ -150,6 +150,14 @@ class SimplexRouterManager {
     }
   };
 
+  public defaultRegister = (config: RouterDefinition) => {
+    if (config.type === "express") {
+      for (const route of config.routes as SimplexExpressRoute[]) {
+        this.routerIndex.set(route.id, route);
+      }
+    }
+  };
+
   /**
    * Calls a registered Simplex API route by its ID, passing the original request and a mock response object to capture the output. This allows for dynamic invocation of routes registered in Simplex mode without needing to know their specific paths.
    * Currently only for RouterTempletes with type of ExpressRecipe and useSimplex enabled, will be registered in the routerIndex and can be called through this method.
@@ -164,7 +172,7 @@ class SimplexRouterManager {
     method: string,
     middlewareManager: MiddlewareManager,
     reqHeader: any,
-    reqIp: any
+    reqIp: any,
   ): Promise<any> => {
     if (!this.useSimplex) throw new Error("Simplex mode is not enabled.");
 
@@ -184,7 +192,12 @@ class SimplexRouterManager {
 
       // 1. Create the Ghost Request
       // We map your raw reqData into req.body so standard Express middlewares can find it
-      const mockReq = RouterUtils.createMockRequest(reqData, method, reqHeader, reqIp);
+      const mockReq = RouterUtils.createMockRequest(
+        reqData,
+        method,
+        reqHeader,
+        reqIp,
+      );
 
       // 2. Create the Ghost Response
       // If a handler calls res.json() or res.send(), it resolves the promise!

@@ -16,3 +16,9 @@ export interface SchemaField {
 export interface SchemaDefinition {
   [key: string]: SchemaField;
 }
+
+export interface MemoriesConfig {
+  memoriesName: string;
+  memoriesPrimaryKey: string;
+  memoriesSchema: SchemaDefinition;
+}

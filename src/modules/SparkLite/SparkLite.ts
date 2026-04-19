@@ -10,7 +10,7 @@ class SparkLite {
     this.app = new EventEmitter();
   }
 
-  public load = async () => {
+  public init = async () => {
     console.log("[SPARKLITE] SparkLite module loaded.");
     const eventPath = path.resolve(process.cwd(), "./src/events");
     console.log(`[SPARKLITE] Loading events from: ${eventPath}`);

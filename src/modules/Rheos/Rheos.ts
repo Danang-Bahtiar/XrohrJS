@@ -1,9 +1,7 @@
 import { glob } from "glob";
 import path from "path";
 import axios from "axios";
-import { AxiosConfig } from "../../config/Xrohr.config.js";
 import { AxiosCall, AxiosResult } from "./Rheos.types.js";
-
 
 // 🎨 Visual Styling Helpers
 const style = {
@@ -17,14 +15,11 @@ const style = {
 };
 
 class Rheos {
-  private config: AxiosConfig;
-  // Storage: Priority -> Map<CallName, CallConfig>
-  private RheosMemoria: Map<number, Map<string, AxiosCall>>;
+  private Urls: string[];
   private universalMemoria: Map<string, any>;
 
-  constructor(config: AxiosConfig) {
-    this.config = config;
-    this.RheosMemoria = new Map();
+  constructor(Urls: string[]) {
+    this.Urls = Urls;
     this.universalMemoria = new Map();
   }
 
@@ -32,7 +27,7 @@ class Rheos {
    * INITIALIZATION
    * Loads all AxiosCall definition files from the source folder.
    */
-  public load = async () => {
+  public init = async () => {
     const callPath = path.resolve(process.cwd(), "./src/axiosCalls");
     // Normalize path for Windows compatibility
     const callDir = path
@@ -43,7 +38,7 @@ class Rheos {
 
     if (files.length === 0) {
       console.log(
-        `${style.yellow}[RHEOS] [WARN] No AxiosCall files found.${style.reset}`
+        `${style.yellow}[RHEOS] [WARN] No AxiosCall files found.${style.reset}`,
       );
       return;
     }
@@ -57,25 +52,21 @@ class Rheos {
 
         if (!this.validateConfig(callConfig, file)) continue;
 
-        this.registerCall(callConfig);
+        this.universalMemoria.set(callConfig.name, callConfig);
+
+        // Logging
+        const methodTag = `[${callConfig.method.toUpperCase()}]`.padEnd(8);
+        console.log(
+          `${style.blue}[RHEOS] Loaded: ${style.reset}${methodTag} ${callConfig.name} from ${path.basename(file)}`,
+        );
       } catch (error) {
         console.error(
           `${style.red}[RHEOS] [ERR] Failed to load ${path.basename(
-            file
-          )}: ${error}${style.reset}`
+            file,
+          )}: ${error}${style.reset}`,
         );
       }
     }
-  };
-
-  public executeSingleCall = async (name: string) => {
-    const callConfig = this.universalMemoria.get(name);
-    if (!callConfig) {
-      throw new Error(
-        `Rheos call with name '${name}' not found in the memoria.`
-      );
-    }
-    return await this.performRequest(callConfig, this.config.baseURL);
   };
 
   /**
@@ -86,158 +77,125 @@ class Rheos {
     return this.universalMemoria.get(name);
   };
 
-  /**
-   * 🔍 GET PRIORITY GROUP
-   * Returns all calls associated with a specific priority.
-   */
-  public getPriorityGroup = (
-    priority: number
-  ): Map<string, AxiosCall> | undefined => {
-    return this.RheosMemoria.get(priority);
-  };
-
-  /**
-   * 🛠️ EXECUTE BY CONFIG object
-   * If you manually constructed a config object or heavily modified one.
-   */
-  public executeConfig = async (config: AxiosCall): Promise<AxiosResult> => {
-    return await this.performRequest(config, this.config.baseURL);
-  };
-
-  /**
-   * EXECUTION ENGINE
-   * Runs all calls registered under a specific priority level.
-   */
-  public executeBulkCalls = async (priority: number) => {
-    const priorityMap = this.RheosMemoria.get(priority);
-
-    if (!priorityMap) {
-      // Not necessarily an error, just no tasks for this priority
-      return null;
-    }
-
-    console.log(
-      `${style.cyan}[RHEOS] 🔄 Batch Execution: Priority ${priority}${style.reset}`
-    );
-
-    const resultMap = new Map<string, any>();
-
-    for (const [name, axiosConfig] of priorityMap.entries()) {
-      // 1. Primary Attempt
-      let result = await this.performRequest(axiosConfig, this.config.baseURL);
-
-      // 2. Fallback Attempt (if configured)
-      if (!result.success && axiosConfig.tryWithSubURL && this.config.subURL) {
-        console.warn(
-          `${style.yellow}[RHEOS] ⚠️  ${name} failed. Retrying via SubURL...${style.reset}`
-        );
-        result = await this.performRequest(axiosConfig, this.config.subURL);
-      }
-
-      resultMap.set(name, result);
-    }
-
-    return resultMap;
-  };
-
-  public getAllConfig () {
+  public getAllConfig() {
     return this.universalMemoria;
   }
 
-  // =========================== PRIVATE UTILITIES =========================== //
+  public executeCall = async (name: string) => {
+    const callConfig = this.universalMemoria.get(name);
+    if (!callConfig) {
+      throw new Error(
+        `Rheos call with name '${name}' not found in the memoria.`,
+      );
+    }
+    return await this.performConfigCall(callConfig);
+  };
 
-  private registerCall(config: AxiosCall) {
-    // Default to Lowest Priority if not set
-    const priority = config.priority ?? Number.MAX_SAFE_INTEGER;
-
-    if (!this.RheosMemoria.has(priority)) {
-      this.RheosMemoria.set(priority, new Map());
+  public performConfigCall = async (config: AxiosCall) => {
+    // 1. Handle Absolute URIs
+    if (config.absoluteUri) {
+      return await this.executeAxios(config.endpoint, config);
     }
 
-    this.RheosMemoria.get(priority)!.set(config.name, config);
-    this.universalMemoria.set(config.name, config);
+    const strategyType = config.strategy?.type || "primary";
+    const onFail = config.strategy?.onFail || "retry";
+    const maxRetries = config.strategy?.maxRetries ?? 3;
+    const targets = this.getTargetUrls(strategyType);
 
-    // Logging
-    const methodTag = `[${config.method.toUpperCase()}]`.padEnd(8);
-    console.log(
-      `${style.blue}[RHEOS] Loaded: ${style.reset}${methodTag} ${config.name} ${style.dim}(Prio: ${priority})${style.reset}`
-    );
-  }
+    // 2. Parallel Broadcast
+    if (strategyType === "all") {
+      console.log(`[RHEOS] Broadcasting ${config.name} to all nodes...`);
+      return await Promise.all(
+        targets.map((url) =>
+          this.executeAxios(`${url}${config.endpoint}`, config),
+        ),
+      );
+    }
+
+    // 3. Fallback Logic (Horizontal)
+    if (onFail === "fallback") {
+      const allUrls = this.Urls;
+      const startIndex = Math.max(0, allUrls.indexOf(targets[0]));
+
+      for (let i = 0; i <= maxRetries; i++) {
+        const currentIndex = (startIndex + i) % allUrls.length;
+        const res = await this.executeAxios(
+          `${allUrls[currentIndex]}${config.endpoint}`,
+          config,
+        );
+        if (res.success) return res;
+        if (i + 1 >= allUrls.length) break;
+      }
+    }
+    // 4. Retry Logic (Vertical)
+    else {
+      const targetUrl = targets[0];
+      for (let attempt = 0; attempt <= maxRetries; attempt++) {
+        const res = await this.executeAxios(
+          `${targetUrl}${config.endpoint}`,
+          config,
+        );
+        if (res.success || onFail === "ignore") return res;
+
+        if (attempt < maxRetries && config.strategy?.retryDelay) {
+          await this.sleep(config.strategy.retryDelay);
+        }
+      }
+    }
+  };
+
+  // =========================== PRIVATE UTILITIES =========================== //
 
   private validateConfig(config: AxiosCall, file: string): boolean {
     if (!config.name || !config.method || !config.endpoint) {
       console.warn(
         `${style.yellow}[RHEOS] [SKIP] Invalid config in ${path.basename(
-          file
-        )}${style.reset}`
+          file,
+        )}${style.reset}`,
       );
       return false;
     }
     return true;
   }
 
-  private performRequest = async (config: AxiosCall, baseURL: string) => {
-    const url = config.absoluteUri
-      ? config.endpoint
-      : baseURL + config.endpoint;
+  private executeAxios = async (url: string, config: AxiosCall) => {
+    // 1. Resolve body
+    let requestData =
+      typeof config.body === "function" ? await config.body() : config.body;
 
-    // Dynamic Data Generation
-    let requestData = config.data;
-    if (typeof config.data === "function") {
-      try {
-        requestData = await config.data();
-      } catch (e) {
-        console.error(
-          `${style.red}[RHEOS] [ERR] Data generation failed for '${config.name}': ${e}${style.reset}`
-        );
-        return { success: false, error: e };
-      }
-    }
-
-    const axiosOptions = {
-      method: config.method,
-      url: url,
-      data: requestData,
-      headers: config.headers || {},
-      timeout: config.timeout || this.config.defaultTimeout || 5000,
-    };
-
-    let result: { success: boolean; data?: any; error?: any };
-
+    // 2. Pure Axios Call
     try {
-      const response = await axios(axiosOptions);
-      console.log(
-        `${style.green}[RHEOS] ✔️  Success: ${config.name}${style.reset}`
-      );
-
-      result = { success: true, data: response.data };
+      const response = await axios({
+        method: config.method,
+        url: url,
+        data: requestData,
+        headers: config.headers || {},
+        timeout: config.strategy?.timeout || 5000,
+      });
+      const result = { success: true, data: response.data };
+      if (config.onResponse) await config.onResponse(result);
+      return result;
     } catch (error: any) {
-      const errMsg = error.response
-        ? `Status ${error.response.status}`
-        : error.message;
-      console.error(
-        `${style.red}[RHEOS] ❌ Failed:  ${config.name} -> ${errMsg}${style.reset}`
-      );
-
-      result = { success: false, error: error.response };
+      const result = { success: false, error: error.response || error.message };
+      if (config.onResponse) await config.onResponse(result);
+      return result;
     }
-
-    if (config.onResponse) {
-      try {
-        console.log(
-          `${style.dim}   -> Triggering reactive function for ${config.name}...${style.reset}`
-        );
-        // We await it in case it's async (e.g., saving to database)
-        await config.onResponse(result);
-      } catch (callbackError) {
-        console.error(
-          `${style.red}   -> Reactive function failed: ${callbackError}${style.reset}`
-        );
-      }
-    }
-
-    return result;
   };
+
+  private sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
+
+  private getTargetUrls(strategy: string): string[] {
+    // This is a placeholder. You would implement logic here to return URLs based on the strategy and your topology configuration.
+    // For example, you might return this.Urls for "primary", a random URL for "random", or all URLs for "all".
+    if (strategy === "random") {
+      const randomIndex = Math.floor(Math.random() * this.Urls.length);
+      return [this.Urls[randomIndex]];
+    } else if (strategy === "all") {
+      return this.Urls;
+    } else {
+      return [this.Urls[0]]; // Primary by default
+    }
+  }
 }
 
 export default Rheos;

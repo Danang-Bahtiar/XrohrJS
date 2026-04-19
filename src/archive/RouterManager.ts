@@ -8,11 +8,10 @@ import MiddlewareManager from "../Middleware/MiddlewareManager.js";
 import Rheos from "../Rheos/Rheos.js";
 import {
   ConstructRouteDefinition,
-  ExpressRoute,
   ExpressRouterDefinition,
   MemoriaSource,
   RouterDefinition,
-} from "./Router.types.js";
+} from "./Router.archive.js";
 
 class RouterManager {
   private prefix: string;
@@ -90,6 +89,15 @@ class RouterManager {
       }
     }
   };
+
+  public defaultRegister = (config: RouterDefinition, app: Server, middlewareManager: MiddlewareManager) => {
+      ExpressFactory.load(
+            this.prefix,
+            config as ExpressRouterDefinition,
+            app,
+            middlewareManager,
+          );
+    };
 
   public registerRoute = (
     routeConfig: ConstructRouteDefinition,

@@ -18,10 +18,6 @@ class Server {
    */
   public listen = (port: number, callback?: () => void) => {
     this.expressApp.listen(port, () => {
-      console.log(
-        `[SERVER] HTTP Server is officially listening on port ${port}`,
-      );
-
       if (callback) {
         callback();
       }

@@ -1,7 +1,6 @@
-import Server from "../../core/Server.js";
-import MiddlewareManager from "../Middleware/MiddlewareManager.js";
-import { ExpressRoute, ExpressRouterDefinition } from "./Router.types.js";
-import RouterUtils from "./Utils.js";
+import Server from "../core/Server.js";
+import MiddlewareManager from "../modules/Middleware/MiddlewareManager.js";
+import RouterUtils from "../modules/Router/Utils.js";
 
 class ExpressFactory {
   static load = (
