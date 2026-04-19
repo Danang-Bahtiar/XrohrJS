@@ -32,7 +32,11 @@
   - `modules/Router/ConstructFactory.ts`
   - `modules/Router/Router.type.ts`
   - `modules/Router/SimplexRouterManager.ts`
+  - `modules/Router/ConstructFactory.ts`
   - `modules/Router/SparkLite.ts`
 
 ### Removed
 - **Routing**: `Express Route` has been removed.
+
+### Fixed
+- **Routing**: `Default Global Routing Event` is now fixed.
