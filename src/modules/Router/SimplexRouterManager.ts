@@ -13,7 +13,6 @@ import RouterUtils from "./Utils.js";
 import path from "path";
 
 class SimplexRouterManager {
-  private prefix: string;
   private useSimplex: boolean = true;
 
   private routerIndex: Map<string, SimplexExpressRoute>;
@@ -21,10 +20,7 @@ class SimplexRouterManager {
 
   private constructFactory: ConstructFactory;
 
-  constructor(apiPrefix: string) {
-    this.useSimplex = true;
-    this.prefix = apiPrefix;
-
+  constructor() {
     this.routerIndex = new Map<string, SimplexExpressRoute>();
     this.constructIndex = new Map<string, SimplexConstructRouteDefinition>();
 
@@ -32,14 +28,6 @@ class SimplexRouterManager {
   }
 
   public init = async (): Promise<void> => {
-    if (this.useSimplex) {
-      console.log(
-        `[ROUTER MANAGER] Initializing RouterManager in Simplex mode with prefix '${this.prefix}'`,
-      );
-      console.log(
-        `[ROUTER MANAGER] In Simplex mode, all routes will be registered under the global prefix '${this.prefix}' regardless of their defined paths.`,
-      );
-    }
 
     const files = await RouterUtils.fileDiscovery();
 
@@ -55,31 +43,14 @@ class SimplexRouterManager {
         console.log(`[ROUTER MANAGER] Loading routes from: ${fileName}`);
 
         // Only pass/register ExpressRecipe type in the init phase regardless egde or main server.
-
-        if (routeConfig.type === "express") {
-          for (const route of routeConfig.routes as SimplexExpressRoute[]) {
-            this.routerIndex.set(route.id, route);
-            console.log(
-              `  ✔️  Registered route: ${route.id} (from ${fileName})`,
-            );
-          }
-        } else if (routeConfig.type === "construct") {
-          // Just put it on the shelf. Do not load it into Express!
-          this.constructIndex.set(
-            routeConfig.id,
-            routeConfig as SimplexConstructRouteDefinition,
-          );
-          console.log(
-            `  📦  Stored Construct blueprint: ${routeConfig.id} (from ${fileName})`,
-          );
-        }
+        this.registerRoute(routeConfig, fileName);
       } catch (error) {
         console.error(`[ERROR] Failed to load route file ${fileName}:`, error);
       }
     }
   };
 
-  public registerRoute = (
+  public dynamicRegister = (
     routeConfig: RouterDefinition,
     memoriaApp: Memoria,
     rheosApp: Rheos,
@@ -119,7 +90,7 @@ class SimplexRouterManager {
 
         const routeEntry: SimplexExpressRoute = {
           id: routeConfig.id,
-          method: routeConfig.source.targetMethod,
+          method: "post",
           middlewares: [], // Edge nodes usually skip middleware
           handler: routeConfig.handler,
         };
@@ -150,12 +121,30 @@ class SimplexRouterManager {
     }
   };
 
-  public defaultRegister = (config: RouterDefinition) => {
+  public registerRoute = (config: RouterDefinition, fileName?: string) => {
     if (config.type === "express") {
       for (const route of config.routes as SimplexExpressRoute[]) {
         this.routerIndex.set(route.id, route);
+        const logEntry = fileName
+          ? `  ✔️  Registered route: ${route.id} (from ${fileName})`
+          : `  ✔️  Registered route: ${route.id}`;
+        console.log(logEntry);
       }
+    } else if (config.type === "construct") {
+      // Just put it on the shelf. Do not load it into Express!
+      this.constructIndex.set(
+        config.id,
+        config as SimplexConstructRouteDefinition,
+      );
+      const logEntry = fileName
+        ? `  📦  Stored Construct blueprint: ${config.id} (from ${fileName})`
+        : `  📦  Stored Construct blueprint: ${config.id}`;
+      console.log(logEntry);
     }
+  };
+
+  public getConstructIndex = () => {
+    return this.constructIndex;
   };
 
   /**
@@ -170,9 +159,9 @@ class SimplexRouterManager {
     routeId: string,
     reqData: any,
     method: string,
-    middlewareManager: MiddlewareManager,
     reqHeader: any,
     reqIp: any,
+    middlewareManager?: MiddlewareManager,
   ): Promise<any> => {
     if (!this.useSimplex) throw new Error("Simplex mode is not enabled.");
 
@@ -183,9 +172,9 @@ class SimplexRouterManager {
       throw new Error(`HTTP method mismatch for route '${routeId}'.`);
     }
 
-    const middlewareChain = middlewareManager.getExpressMiddlewares(
-      route.middlewares,
-    );
+    const middlewareChain = middlewareManager
+      ? middlewareManager.getExpressMiddlewares(route.middlewares)
+      : [];
 
     return new Promise(async (resolve, reject) => {
       let isResponded = false;
@@ -235,10 +224,6 @@ class SimplexRouterManager {
       };
       next();
     });
-  };
-
-  public getConstructIndex = () => {
-    return this.constructIndex;
   };
 }
 

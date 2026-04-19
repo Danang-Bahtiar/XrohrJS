@@ -11,6 +11,7 @@ import { MemoriesConfig } from "../../modules/Memoria/Memoria.type.js";
 import os from "os";
 import crypto from "crypto";
 import { NodeManifest } from "../Xrohr.types.js";
+import DEBUG from "../../utils/Debug.js";
 
 class XRohrUtils {
   static topologyCheck = (
@@ -59,7 +60,9 @@ class XRohrUtils {
   static generateNodeId = () => crypto.randomBytes(4).toString("hex");
 
   static finalizeLog = (isEdge: boolean, self: NodeManifest) => {
-    const roleLabel = isEdge ? `EDGE NODE - ${self.id}` : `MAIN SERVER - ${self.id}`;
+    const roleLabel = isEdge
+      ? `EDGE NODE - ${self.id}`
+      : `MAIN SERVER - ${self.id}`;
     const color = isEdge ? "\x1b[36m" : "\x1b[35m"; // Cyan for Edge, Magenta for Main
     const reset = "\x1b[0m";
     const boxWidth = 64; // Total inner space width
@@ -125,6 +128,109 @@ class XRohrUtils {
       },
       methods: config.allowedMethods || ["GET", "POST", "PUT", "DELETE"],
     };
+  };
+
+  static apiCallEvent = (
+    prefix: string,
+    sparklite: boolean,
+    expressApp: Server,
+    sparkliteApp: SparkLite,
+    routerManager: SimplexRouterManager,
+    middlewareManager?: MiddlewareManager,
+  ) => {
+    if (!sparklite) {
+      DEBUG.warn(
+        "[API CALL EVENT]: Default API CALL EVENT requires Sparklite to be enabled, unless you have implemented your own event handling.",
+      );
+      return;
+    }
+
+    XRohrUtils.callerEvent(
+      sparkliteApp,
+      routerManager,
+      middlewareManager ? middlewareManager : undefined,
+    );
+    XRohrUtils.globalRouteHandler(prefix, expressApp, sparkliteApp);
+
+    DEBUG.success(
+      "[API CALL EVENT]: Global API call event registered successfully.",
+    );
+  };
+
+  static callerEvent = (
+    sparkliteApp: SparkLite,
+    routerManager: SimplexRouterManager,
+    middlewareManager?: MiddlewareManager,
+  ) => {
+    sparkliteApp.Subscribe("API_CALL", async (data, resolver) => {
+      try {
+        // 1. Try to run the engine
+        const result = await routerManager.callSimplexAPI(
+          data.id,
+          data.req,
+          data.method,
+          data.headers,
+          data.ip,
+          middlewareManager ? middlewareManager : undefined,
+        );
+
+        // 2. Success! Send the user's data back.
+        resolver?.(result);
+      } catch (err: any) {
+        // 3. ABORT! A middleware called next(err) or a handler threw an exception.
+        // We just pass the raw error straight back to the client.
+        console.error(`[Simplex Error] Route '${data.id}':`, err.message);
+
+        resolver?.({
+          error: true,
+          message: err.message || "Internal Server Error",
+          // Pass the raw error object if the user attached custom properties to it
+          raw: err,
+        });
+      }
+    });
+  };
+
+  static globalRouteHandler = (
+    prefix: string,
+    expressApp: Server,
+    sparkliteApp: SparkLite,
+  ) => {
+    const app = expressApp.getApp();
+    // GLOBAL API ENDPOINT
+    // This endpoint will act as a bridge, forwarding requests to SparkLite which then routes them to the correct handler
+    // Note: We use app.all() to catch all HTTP methods, but we will enforce method checks inside the handler
+    // the API will forbid physical GET request, and only allow POST/PUT/DELETE with a body containing { id, method, data }
+    app.all(new RegExp(`^/${prefix}/(.*)`), async (req, res) => {
+      // 1. Immediate Method Check
+      if (req.method === "GET") {
+        return res.status(400).json({
+          error: true,
+          message:
+            "Physical GET requests are not supported in Simplex mode. Use POST.",
+        });
+      }
+
+      // 2. Body Existence Check
+      if (!req.body || Object.keys(req.body).length === 0) {
+        return res.status(400).json({
+          error: true,
+          message:
+            "Empty request body. Simplex routes require 'id' and 'method' in JSON.",
+        });
+      }
+
+      // 3. Continue to Bridge
+      const result = await sparkliteApp.Publish("API_CALL", {
+        id: req.body.id,
+        method: req.body.method,
+        req: req.body.data,
+        headers: req.headers,
+        ip: req.ip || req.socket.remoteAddress,
+      });
+
+      res.json(result);
+    });
   };
 }
 

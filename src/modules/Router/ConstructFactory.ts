@@ -158,51 +158,6 @@ class ConstructFactory {
       }
     };
   };
-
-  // ========================================
-  // STANDARD HTTP
-  // ========================================
-  public createHttpHandler = (construct: ForwardSource, rheosApp: Rheos) => {
-    return async (req: Request, res: Response) => {
-      try {
-        const methodMap = {
-          get: "GET",
-          post: "POST",
-          put: "PUT",
-          delete: "DELETE",
-        } as const;
-
-        const fwConfig = construct.config || {};
-
-        const rheosConfig: AxiosCall = {
-          name: "ForwardCall",
-          // 1. Physical Network Method
-          method: methodMap[construct.targetMethod],
-          // 2. The Headers Fix (Force TS to accept Express headers, or send undefined)
-          headers: fwConfig.forwardHeaders
-            ? (req.headers as Record<string, string>)
-            : {
-                "Content-Type": "application/json",
-              },
-          body: req.body,
-          absoluteUri: true,
-          endpoint: construct.resource,
-        };
-
-        const mainServerResponse = await rheosApp.performConfigCall(rheosConfig);
-
-        // return res.status(mainServerResponse.status).json(responseData);
-      } catch (error: any) {
-        const errMsg =
-          error.name === "AbortError" ? "Gateway Timeout" : error.message;
-
-        const status = error.name === "AbortError" ? 504 : 502;
-        return res
-          .status(status)
-          .json({ status: "Error", message: `Proxy Failed: ${errMsg}` });
-      }
-    };
-  };
 }
 
 export default ConstructFactory;

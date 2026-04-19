@@ -1,29 +1,3 @@
-// 7. Router
-    XRohrUtils.logSection("ROUTER MANAGER");
-    this.routerManager = new SimplexRouterManager(config.restApi.apiPrefix);
-    await this.routerManager.init();
-    console.log("[ROUTER] All routes registered successfully.");
-
-    // 8. Default Event Register
-    XRohrUtils.logSection("DEFAULT EVENT REGISTRATION");
-    // If using Simplex, register a default event listener for API calls
-    if (config.restApi.useSimplex && this.sparkLiteEnabled) {
-      // Register the Event that would be called by Global Route
-      XRohrUtils.apiCallEvent(
-        this.sparkLiteApp,
-        this.routerManager as SimplexRouterManager,
-        this.middlewareManager,
-      );
-      console.log("[DEFAULT EVENT] API_CALL event registered.");
-
-      // Register the Global Route
-      XRohrUtils.globalRouteHandler(
-        config.restApi.apiPrefix,
-        this.expressApp,
-        this.sparkLiteApp,
-      );
-      console.log("[DEFAULT EVENT] GLOBAL_ROUTE_HANDLER registered.");
-    }
 
     if (config.topology.isEdgeNode) {
       await this.edgeNodeStartup(
@@ -175,82 +149,9 @@
           console.error("[XROHR] Error during startup events:", error);
         }
 
-        static globalRouteHandler = (
-    prefix: string,
-    expressApp: Server,
-    sparkliteApp: SparkLite,
-  ) => {
-    const app = expressApp.getApp();
-    // GLOBAL API ENDPOINT
-    // This endpoint will act as a bridge, forwarding requests to SparkLite which then routes them to the correct handler
-    // Note: We use app.all() to catch all HTTP methods, but we will enforce method checks inside the handler
-    // the API will forbid physical GET request, and only allow POST/PUT/DELETE with a body containing { id, method, data }
-    app.all(new RegExp(`^/${prefix}/(.*)`), async (req, res) => {
-      // 1. Immediate Method Check
-      if (req.method === "GET") {
-        return res.status(400).json({
-          error: true,
-          message:
-            "Physical GET requests are not supported in Simplex mode. Use POST.",
-        });
-      }
+        
 
-      // 2. Body Existence Check
-      if (!req.body || Object.keys(req.body).length === 0) {
-        return res.status(400).json({
-          error: true,
-          message:
-            "Empty request body. Simplex routes require 'id' and 'method' in JSON.",
-        });
-      }
-
-      // 3. Continue to Bridge
-      const result = await sparkliteApp.Publish("API_CALL", {
-        id: req.body.id,
-        method: req.body.method,
-        req: req.body.data,
-        headers: req.headers,
-        ip: req.ip || req.socket.remoteAddress,
-      });
-
-      res.json(result);
-    });
-  };
-
-  static apiCallEvent = (
-    sparkliteApp: SparkLite,
-    routerManager: SimplexRouterManager,
-    middlewareManager: MiddlewareManager,
-  ) => {
-    sparkliteApp.Subscribe("API_CALL", async (data, resolver) => {
-      try {
-        // 1. Try to run the engine
-        const result = await routerManager.callSimplexAPI(
-          data.id,
-          data.req,
-          data.method,
-          middlewareManager,
-          data.headers,
-          data.ip,
-        );
-
-        // 2. Success! Send the user's data back.
-        resolver?.(result);
-      } catch (err: any) {
-        // 3. ABORT! A middleware called next(err) or a handler threw an exception.
-        // We just pass the raw error straight back to the client.
-        console.error(`[Simplex Error] Route '${data.id}':`, err.message);
-
-        resolver?.({
-          error: true,
-          message: err.message || "Internal Server Error",
-          // Pass the raw error object if the user attached custom properties to it
-          raw: err,
-        });
-      }
-    });
-  };
-
+  
   static apiRegisterEvent = (
     sparkLiteApp: SparkLite,
     memoriaApp: Memoria,
@@ -429,4 +330,49 @@
         });
       }
     });
+  };
+
+  // ========================================
+  // STANDARD HTTP
+  // ========================================
+  public createHttpHandler = (construct: ForwardSource, rheosApp: Rheos) => {
+    return async (req: Request, res: Response) => {
+      try {
+        const methodMap = {
+          get: "GET",
+          post: "POST",
+          put: "PUT",
+          delete: "DELETE",
+        } as const;
+
+        const fwConfig = construct.config || {};
+
+        const rheosConfig: AxiosCall = {
+          name: "ForwardCall",
+          // 1. Physical Network Method
+          method: methodMap[construct.targetMethod],
+          // 2. The Headers Fix (Force TS to accept Express headers, or send undefined)
+          headers: fwConfig.forwardHeaders
+            ? (req.headers as Record<string, string>)
+            : {
+                "Content-Type": "application/json",
+              },
+          body: req.body,
+          absoluteUri: true,
+          endpoint: construct.resource,
+        };
+
+        const mainServerResponse = await rheosApp.performConfigCall(rheosConfig);
+
+        // return res.status(mainServerResponse.status).json(responseData);
+      } catch (error: any) {
+        const errMsg =
+          error.name === "AbortError" ? "Gateway Timeout" : error.message;
+
+        const status = error.name === "AbortError" ? 504 : 502;
+        return res
+          .status(status)
+          .json({ status: "Error", message: `Proxy Failed: ${errMsg}` });
+      }
+    };
   };

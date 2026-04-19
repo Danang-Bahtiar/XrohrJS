@@ -78,9 +78,25 @@ class Xrohr {
       version: "2.3.5",
     };
 
+    XRohrUtils.logSection("ROUTER MANAGER");
+    this.routerManager = new SimplexRouterManager();
+    await this.routerManager.init();
+    DEBUG.success(`[CONFIG] Router Manager initialized successfully.`);
+
     // 3. Check enabled modules and initiate each one enabled.
     await this.setupEnableModules(config, isEdge);
     await this.setupEnableServices(config);
+
+    // 4. Default Event Register
+    XRohrUtils.logSection("DEFAULT EVENT REGISTRATION");
+    XRohrUtils.apiCallEvent(
+      config.server.apiPrefix,
+      this.self.modules.includes("SPARKLITE"),
+      this.expressApp,
+      this.sparkLiteApp,
+      this.routerManager,
+      this.self.modules.includes("MIDDLEWARE") ? this.middlewareManager : undefined,
+    );
 
     // ============== FINALIZATION ==================
     XRohrUtils.finalizeLog(isEdge, this.self);
@@ -273,7 +289,7 @@ class Xrohr {
 
   public getSelfManifest = (): NodeManifest => {
     return this.self;
-  }
+  };
 
   /**
    * Starts the Express server on the configured port.
